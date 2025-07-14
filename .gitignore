@@ -1,0 +1,16 @@
+.vs
+Binaries
+Build
+Content
+DerivedDataCache
+Intermediate
+Platforms
+Saved
+Script
+*.sln
+*.vsconfig
+
+Plugins/MultiplayerSessions/Binaries
+Plugins/MultiplayerSessions/Content
+Plugins/MultiplayerSessions/Intermediate
+Plugins/MultiplayerSessions/Resources
