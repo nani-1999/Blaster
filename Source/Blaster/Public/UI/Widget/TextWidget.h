@@ -18,5 +18,5 @@ protected:
 	TObjectPtr<UTextBlock> DisplayText;
 
 public:
-	void SetText(FText TextToSet);
+	void SetText(FText TextToSet, int32 FontSize = 24);
 };

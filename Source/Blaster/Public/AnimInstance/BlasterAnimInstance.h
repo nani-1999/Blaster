@@ -24,4 +24,10 @@ public:
 
 	UPROPERTY(BlueprintReadOnly)
 	bool bIsAccelerating;
+
+	UPROPERTY(BlueprintReadOnly)
+	bool bIsWeaponEquipped;
+
+	UPROPERTY(BlueprintReadOnly)
+	bool bIsCrouched;
 };
