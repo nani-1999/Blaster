@@ -46,14 +46,23 @@ protected:
 	void LookUp(const float Value);
 	UFUNCTION()
 	void Turn(const float Value);
+
 	UFUNCTION()
 	void EquipPressed();
+	UFUNCTION(Server, Reliable)
+	void ServerEquipPressed();
+
 	UFUNCTION()
 	void CrouchPressed();
 
-	/* RPC */
+	UFUNCTION()
+	void AimPressed();
 	UFUNCTION(Server, Reliable)
-	void ServerEquipPressed();
+	void ServerAimPressed();
+	UFUNCTION()
+	void AimReleased();
+	UFUNCTION(Server, Reliable)
+	void ServerAimReleased();
 
 	/* Test */
 	UPROPERTY(VisibleAnywhere)
@@ -89,6 +98,5 @@ public:
 	bool IsAccelerating();
 	FORCEINLINE AWeapon* GetOverlappingWeapon() const { return OverlappingWeapon; }
 	bool IsWeaponEquipped();
+	bool IsAiming();
 };
-
-////// How is APlayerController's rotation is replicating between server and client, just controller.

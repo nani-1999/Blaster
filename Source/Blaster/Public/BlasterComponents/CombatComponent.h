@@ -30,6 +30,11 @@ protected:
 public:
 	void EquipWeapon(AWeapon* WeaponToEquip);
 
+	/* Aim */
+	UPROPERTY(Replicated)
+	bool bIsAiming;
+
 	/* Getters */
 	FORCEINLINE AWeapon* GetEquippedWeapon() const { return EquippedWeapon; }
+	FORCEINLINE bool IsAiming() const { return bIsAiming; }
 };

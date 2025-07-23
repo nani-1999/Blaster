@@ -27,7 +27,7 @@ ABlasterCharacter::ABlasterCharacter()
 	/* Camera Boom */
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>("CameraBoom");
 	CameraBoom->SetupAttachment(GetMesh());
-	CameraBoom->SetUsingAbsoluteRotation(true);
+	//CameraBoom->SetUsingAbsoluteRotation(true);
 	CameraBoom->TargetArmLength = 600.f;
 	CameraBoom->bUsePawnControlRotation = true;
 
@@ -37,10 +37,10 @@ ABlasterCharacter::ABlasterCharacter()
 	//FollowCamera->bUsePawnControlRotation = false;
 	
 	/* Controller */
-	bUseControllerRotationYaw = false; /* since other two axis are false by default */
+	bUseControllerRotationYaw = true; /* since other two axis are false by default */
 	/* Character Movement */
-	GetCharacterMovement()->bOrientRotationToMovement = true;
-	GetCharacterMovement()->RotationRate = FRotator(0.f, 420.f, 0.f);
+	//GetCharacterMovement()->bOrientRotationToMovement = true;
+	//GetCharacterMovement()->RotationRate = FRotator(0.f, 420.f, 0.f);
 
 	/* Overhead Widget */
 	OverheadWidget = CreateDefaultSubobject<UWidgetComponent>("OverheadWidget");
@@ -62,8 +62,10 @@ ABlasterCharacter::ABlasterCharacter()
 	/* Crouch 
 	 * enabling crouch
 	 * also crouch is auto replicated since its handled by CharacterMovement 
-	 * replication triggered by changing bWantsToCrouch, also checking if can crouch */
+	 * replication triggered by changing bWantsToCrouch, it also checking if can crouch */
 	GetCharacterMovement()->NavAgentProps.bCanCrouch = true;
+	GetCharacterMovement()->CrouchedHalfHeight = 60.f;
+	GetCharacterMovement()->MaxWalkSpeedCrouched = 100.f;
 }
 
 void ABlasterCharacter::BeginPlay()
@@ -165,6 +167,8 @@ void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	PlayerInputComponent->BindAction("Jump", EInputEvent::IE_Pressed, this, &ACharacter::Jump);
 	PlayerInputComponent->BindAction("Equip", EInputEvent::IE_Pressed, this, &ABlasterCharacter::EquipPressed);
 	PlayerInputComponent->BindAction("Crouch", EInputEvent::IE_Pressed, this, &ABlasterCharacter::CrouchPressed);
+	PlayerInputComponent->BindAction("Aim", EInputEvent::IE_Pressed, this, &ABlasterCharacter::AimPressed);
+	PlayerInputComponent->BindAction("Aim", EInputEvent::IE_Released, this, &ABlasterCharacter::AimReleased);
 }
 
 void ABlasterCharacter::MoveForward(const float Value) {
@@ -213,6 +217,29 @@ void ABlasterCharacter::CrouchPressed() {
 	}
 }
 
+void ABlasterCharacter::AimPressed() {
+	if (HasAuthority()) {
+		if (Combat) Combat->bIsAiming = true;
+	}
+	else {
+		ServerAimPressed();
+	}
+}
+void ABlasterCharacter::ServerAimPressed_Implementation() {
+	if (Combat) Combat->bIsAiming = true;
+}
+void ABlasterCharacter::AimReleased() {
+	if (HasAuthority()) {
+		if (Combat) Combat->bIsAiming = false;
+	}
+	else {
+		ServerAimReleased();
+	}
+}
+void ABlasterCharacter::ServerAimReleased_Implementation() {
+	if (Combat) Combat->bIsAiming = false;
+}
+
 //
 //============================================ Getters ============================================
 //
@@ -224,4 +251,7 @@ bool ABlasterCharacter::IsAccelerating() {
 }
 bool ABlasterCharacter::IsWeaponEquipped() {
 	return (Combat && Combat->GetEquippedWeapon());
+}
+bool ABlasterCharacter::IsAiming() {
+	return (Combat && Combat->IsAiming());
 }

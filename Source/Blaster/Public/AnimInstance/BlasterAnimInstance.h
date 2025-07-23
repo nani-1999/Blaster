@@ -20,6 +20,9 @@ public:
 	float Velocity;
 
 	UPROPERTY(BlueprintReadOnly)
+	float SurfaceVelocity;
+
+	UPROPERTY(BlueprintReadOnly)
 	bool bIsInAir;
 
 	UPROPERTY(BlueprintReadOnly)
@@ -30,4 +33,13 @@ public:
 
 	UPROPERTY(BlueprintReadOnly)
 	bool bIsCrouched;
+
+	UPROPERTY(BlueprintReadOnly)
+	bool bIsAiming;
+
+	UPROPERTY(BlueprintReadOnly)
+	float Strafe;
+
+	UPROPERTY(BlueprintReadOnly)
+	float Lean;
 };

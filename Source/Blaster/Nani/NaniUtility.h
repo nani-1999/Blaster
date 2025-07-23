@@ -2,8 +2,6 @@
 
 #pragma once
 
-//#include "CoreMinimal.h"
-
 #define NANI_LOG(Verbosity, Str, ...) \
 	switch (GetWorld()->GetNetMode()) { \
 		case ENetMode::NM_Client: \
