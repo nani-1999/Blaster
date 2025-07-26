@@ -17,9 +17,6 @@ public:
 
 	/* Blueprint Readable Data */
 	UPROPERTY(BlueprintReadOnly)
-	float Velocity;
-
-	UPROPERTY(BlueprintReadOnly)
 	float SurfaceVelocity;
 
 	UPROPERTY(BlueprintReadOnly)
@@ -38,8 +35,12 @@ public:
 	bool bIsAiming;
 
 	UPROPERTY(BlueprintReadOnly)
-	float Strafe;
+	float Strafe; /* YawOffset */
 
 	UPROPERTY(BlueprintReadOnly)
-	float Lean;
+	float SmoothStrafe;
+
+	UPROPERTY(BlueprintReadOnly)
+	float Lean; /* DeltaYaw */
+	float PreviousSurfaceAimAngle;
 };

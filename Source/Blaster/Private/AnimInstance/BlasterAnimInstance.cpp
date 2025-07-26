@@ -7,9 +7,15 @@
 #include "Blaster/Nani/NaniUtility.h"
 
 float NormalizeRotationAxis(float Angle) {
-	if (Angle > 180.f) Angle -= 360.f;
-	if (Angle < -180.f) Angle += 360.f;
-	return Angle;
+	if (Angle <= 180.f && Angle >= -180.f) return Angle;
+
+	int IntOfAngle = (int)Angle;
+	float DecimalOfAngle = Angle - IntOfAngle;
+
+	float Normalized = (IntOfAngle % 360) + DecimalOfAngle;
+	if (Normalized > 180.f) return Normalized - 360.f;
+	if (Normalized < -180.f) return Normalized + 360.f;
+	return Normalized;
 }
 
 void UBlasterAnimInstance::NativeUpdateAnimation(float DeltaSeconds) {
@@ -20,7 +26,6 @@ void UBlasterAnimInstance::NativeUpdateAnimation(float DeltaSeconds) {
 	if (BlasterCharacter) {
 		FVector Velocity3D = BlasterCharacter->GetVelocity();
 
-		Velocity = Velocity3D.Size();
 		SurfaceVelocity = Velocity3D.Size2D();
 		bIsInAir = BlasterCharacter->IsInAir();
 		bIsAccelerating = BlasterCharacter->IsAccelerating();
@@ -30,8 +35,13 @@ void UBlasterAnimInstance::NativeUpdateAnimation(float DeltaSeconds) {
 
 		float SurfaceAimAngle = BlasterCharacter->GetActorRotation().Yaw;
 		float SurfaceVelocityAngle = FMath::Atan2(Velocity3D.Y, Velocity3D.X) * (180.f / PI);
-		Strafe = (Velocity) ? NormalizeRotationAxis(SurfaceVelocityAngle - SurfaceAimAngle) : 0.f;
+		Strafe = (SurfaceVelocity) ? NormalizeRotationAxis(SurfaceVelocityAngle - SurfaceAimAngle) : 0.f;
 
-		NANI_LOG(Warning, "Aim: %f | Velocity: %f | Diff: %f", SurfaceAimAngle, SurfaceVelocityAngle, Strafe);
+		SmoothStrafe;
+
+		Lean = NormalizeRotationAxis(SurfaceAimAngle - PreviousSurfaceAimAngle) * 5.f;
+		PreviousSurfaceAimAngle = SurfaceAimAngle;
+
+		//NANI_LOG(Warning, "Lean: %f | Strafe: %f | ActorRotation: %s", Lean, Strafe, *BlasterCharacter->GetActorRotation().ToString());
 	}
 }
