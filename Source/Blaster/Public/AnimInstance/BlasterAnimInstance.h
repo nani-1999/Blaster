@@ -36,7 +36,6 @@ public:
 
 	UPROPERTY(BlueprintReadOnly)
 	float Strafe; /* YawOffset */
-
 	UPROPERTY(BlueprintReadOnly)
 	float SmoothStrafe;
 

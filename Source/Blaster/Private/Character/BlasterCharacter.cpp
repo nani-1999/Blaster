@@ -41,6 +41,9 @@ ABlasterCharacter::ABlasterCharacter()
 	/* Character Movement */
 	//GetCharacterMovement()->bOrientRotationToMovement = true;
 	//GetCharacterMovement()->RotationRate = FRotator(0.f, 420.f, 0.f);
+	GetCharacterMovement()->MaxWalkSpeed = 800.f;
+	GetCharacterMovement()->JumpZVelocity = 1600.f;
+	GetCharacterMovement()->GravityScale = 2.f;
 
 	/* Overhead Widget */
 	OverheadWidget = CreateDefaultSubobject<UWidgetComponent>("OverheadWidget");
@@ -65,7 +68,7 @@ ABlasterCharacter::ABlasterCharacter()
 	 * replication triggered by changing bWantsToCrouch, it also checking if can crouch */
 	GetCharacterMovement()->NavAgentProps.bCanCrouch = true;
 	GetCharacterMovement()->CrouchedHalfHeight = 60.f;
-	GetCharacterMovement()->MaxWalkSpeedCrouched = 100.f;
+	GetCharacterMovement()->MaxWalkSpeedCrouched = 200.f;
 }
 
 void ABlasterCharacter::BeginPlay()
@@ -209,6 +212,8 @@ void ABlasterCharacter::ServerEquipPressed_Implementation() {
 }
 
 void ABlasterCharacter::CrouchPressed() {
+	if (IsInAir()) return;
+
 	if (bIsCrouched) {
 		UnCrouch();
 	}
