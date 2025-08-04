@@ -13,6 +13,7 @@ class UWidgetComponent;
 class UCombatComponent;
 
 class UStaticMeshComponent;
+class USkeletalMeshComponent;
 
 UCLASS()
 class BLASTER_API ABlasterCharacter : public ACharacter
@@ -67,6 +68,8 @@ protected:
 	/* Test */
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UStaticMeshComponent> TestMesh;
+	UPROPERTY(VisibleAnywhere)
+	TObjectPtr<USkeletalMeshComponent> WeaponMesh;
 
 	/* Camera */
 	UPROPERTY(VisibleAnywhere)

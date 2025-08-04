@@ -23,18 +23,32 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-	/* Combat */
+	/* Weapon */
 	UPROPERTY(Replicated)
 	TObjectPtr<AWeapon> EquippedWeapon;
 
-public:
-	void EquipWeapon(AWeapon* WeaponToEquip);
+	/* Walk Speed */
+	void SetWalkSpeed(float WalkSpeedToSet);
+	UPROPERTY(EditDefaultsOnly)
+	float BaseWalkSpeed;
+	UPROPERTY(EditDefaultsOnly)
+	float AimWalkSpeed;
 
 	/* Aim */
-	UPROPERTY(Replicated)
-	bool bIsAiming;
+	UPROPERTY(ReplicatedUsing = OnRep_Aiming)
+	bool bAiming;
+	UFUNCTION()
+	void OnRep_Aiming(bool OldAiming);
+
+public:
+	/* Weapon */
+	void EquipWeapon(AWeapon* WeaponToEquip);
 
 	/* Getters */
 	FORCEINLINE AWeapon* GetEquippedWeapon() const { return EquippedWeapon; }
-	FORCEINLINE bool IsAiming() const { return bIsAiming; }
+	FORCEINLINE bool IsAiming() const { return bAiming; }
+	FORCEINLINE float GetBaseWalkSpeed() const { return BaseWalkSpeed; }
+
+	/* Aim */
+	void SetAiming(bool bIsAiming);
 };

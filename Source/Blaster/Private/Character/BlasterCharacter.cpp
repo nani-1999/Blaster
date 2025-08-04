@@ -15,6 +15,7 @@
 
 #include "Blaster/Nani/NaniUtility.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 
 ABlasterCharacter::ABlasterCharacter()
 {
@@ -26,7 +27,7 @@ ABlasterCharacter::ABlasterCharacter()
 
 	/* Camera Boom */
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>("CameraBoom");
-	CameraBoom->SetupAttachment(GetMesh());
+	CameraBoom->SetupAttachment(GetMesh()); /* idk why mesh tho, maybe because to move boom along the animations */
 	//CameraBoom->SetUsingAbsoluteRotation(true);
 	CameraBoom->TargetArmLength = 600.f;
 	CameraBoom->bUsePawnControlRotation = true;
@@ -36,12 +37,14 @@ ABlasterCharacter::ABlasterCharacter()
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	//FollowCamera->bUsePawnControlRotation = false;
 	
+	/* Combat */
+	Combat = CreateDefaultSubobject<UCombatComponent>("Combat");
+	Combat->SetIsReplicated(true);
+
 	/* Controller */
 	bUseControllerRotationYaw = true; /* since other two axis are false by default */
 	/* Character Movement */
-	//GetCharacterMovement()->bOrientRotationToMovement = true;
-	//GetCharacterMovement()->RotationRate = FRotator(0.f, 420.f, 0.f);
-	GetCharacterMovement()->MaxWalkSpeed = 800.f;
+	GetCharacterMovement()->MaxWalkSpeed = Combat->GetBaseWalkSpeed();
 	GetCharacterMovement()->JumpZVelocity = 1600.f;
 	GetCharacterMovement()->GravityScale = 2.f;
 
@@ -57,10 +60,9 @@ ABlasterCharacter::ABlasterCharacter()
 	TestMesh->SetupAttachment(GetRootComponent());
 	TestMesh->SetUsingAbsoluteRotation(true);
 	TestMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-
-	/* Combat */
-	Combat = CreateDefaultSubobject<UCombatComponent>("Combat");
-	Combat->SetIsReplicated(true);
+	WeaponMesh = CreateDefaultSubobject<USkeletalMeshComponent>("WeaponMesh");
+	WeaponMesh->SetupAttachment(GetMesh(), FName("RightHandSocket"));
+	WeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	/* Crouch 
 	 * enabling crouch
@@ -224,25 +226,25 @@ void ABlasterCharacter::CrouchPressed() {
 
 void ABlasterCharacter::AimPressed() {
 	if (HasAuthority()) {
-		if (Combat) Combat->bIsAiming = true;
+		if (Combat) Combat->SetAiming(true);
 	}
 	else {
 		ServerAimPressed();
 	}
 }
 void ABlasterCharacter::ServerAimPressed_Implementation() {
-	if (Combat) Combat->bIsAiming = true;
+	if (Combat) Combat->SetAiming(true);
 }
 void ABlasterCharacter::AimReleased() {
 	if (HasAuthority()) {
-		if (Combat) Combat->bIsAiming = false;
+		if (Combat) Combat->SetAiming(false);
 	}
 	else {
 		ServerAimReleased();
 	}
 }
 void ABlasterCharacter::ServerAimReleased_Implementation() {
-	if (Combat) Combat->bIsAiming = false;
+	if (Combat) Combat->SetAiming(false);
 }
 
 //

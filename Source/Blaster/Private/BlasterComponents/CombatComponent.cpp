@@ -6,10 +6,13 @@
 #include "Weapon/Weapon.h"
 #include "Engine/SkeletalMeshSocket.h"
 #include "Net/UnrealNetwork.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 #include "Blaster/Nani/NaniUtility.h"
 
-UCombatComponent::UCombatComponent()
+UCombatComponent::UCombatComponent() :
+	BaseWalkSpeed{ 600.f },
+	AimWalkSpeed{ 300.f }
 {
 	PrimaryComponentTick.bCanEverTick = false;
 
@@ -31,7 +34,7 @@ void UCombatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(UCombatComponent, EquippedWeapon);
-	DOREPLIFETIME(UCombatComponent, bIsAiming);
+	DOREPLIFETIME(UCombatComponent, bAiming);
 }
 
 void UCombatComponent::EquipWeapon(AWeapon* WeaponToEquip) {
@@ -55,4 +58,27 @@ void UCombatComponent::EquipWeapon(AWeapon* WeaponToEquip) {
 			//}
 		}
 	}
+}
+
+//
+//============================================ Walk Speed ============================================
+//
+void UCombatComponent::SetWalkSpeed(float WalkSpeedToSet) {
+	ACharacter* CompOwner = GetOwner<ACharacter>();
+	if (CompOwner) {
+		UCharacterMovementComponent* MovementComp = CompOwner->GetCharacterMovement();
+		MovementComp->MaxWalkSpeed = WalkSpeedToSet;
+	}
+}
+//
+//============================================ Aim ============================================
+//
+void UCombatComponent::SetAiming(bool bIsAiming) {
+	if (EquippedWeapon == nullptr) return;
+
+	bAiming = bIsAiming;
+	SetWalkSpeed(bAiming ? AimWalkSpeed : BaseWalkSpeed);
+}
+void UCombatComponent::OnRep_Aiming(bool OldAiming) {
+	SetWalkSpeed(bAiming ? AimWalkSpeed : BaseWalkSpeed);
 }
