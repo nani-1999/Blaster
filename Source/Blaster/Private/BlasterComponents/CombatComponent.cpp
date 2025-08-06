@@ -37,6 +37,21 @@ void UCombatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 	DOREPLIFETIME(UCombatComponent, bAiming);
 }
 
+//
+//============================================ Character Movement ============================================
+//
+void UCombatComponent::SetOrientRotationToMovement(bool bOrient) {
+	ACharacter* CompOwner = GetOwner<ACharacter>();
+	if (CompOwner) {
+		UCharacterMovementComponent* MovementComp = CompOwner->GetCharacterMovement();
+		CompOwner->bUseControllerRotationYaw = !bOrient;
+		MovementComp->bOrientRotationToMovement = bOrient;
+	}
+}
+
+//
+//============================================ Weapon ============================================
+//
 void UCombatComponent::EquipWeapon(AWeapon* WeaponToEquip) {
 	if (WeaponToEquip == nullptr) return;
 
@@ -51,6 +66,7 @@ void UCombatComponent::EquipWeapon(AWeapon* WeaponToEquip) {
 			
 			if (bAttachmentSuccessful) {
 				EquippedWeapon = WeaponToEquip;
+				SetOrientRotationToMovement(EquippedWeapon ? false : true);
 				EquippedWeapon->SetOwner(CompOwner);
 			}
 			//else {
@@ -58,6 +74,9 @@ void UCombatComponent::EquipWeapon(AWeapon* WeaponToEquip) {
 			//}
 		}
 	}
+}
+void UCombatComponent::OnRep_EquippedWeapon(AWeapon* OldEquippedWeapon) {
+	SetOrientRotationToMovement(EquippedWeapon ? false : true);
 }
 
 //

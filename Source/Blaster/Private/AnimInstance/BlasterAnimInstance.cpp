@@ -72,14 +72,19 @@ void UBlasterAnimInstance::NativeUpdateAnimation(float DeltaSeconds) {
 		AimPitch = BaseAimRot.Pitch;
 
 		/* SurfaceAimAngle when SurfaceVelocity is Zero */
-		StoppedSurfaceAimAingle = SurfaceVelocity ? SurfaceAimAngle : StoppedSurfaceAimAingle;
+		StoppedSurfaceAimAingle = SurfaceVelocity ? SurfaceAimAngle : StoppedSurfaceAimAingle; ////////////////interp stoppedsurface to actual surface
 		/* Angle between SurfaceAimAngle and StoppedSurfaceAimAngle, StopTurnedSurfaceAimAngle specifically
-		 * usually used for Root rotation while idlying */
+		 * usually used for Root rotation while idlying 
+		 * can zero out when velocity, since SurfaceAimAngle cancles itself */
 		TurnedSurfaceAimAngle = FRotator::NormalizeAxis(SurfaceAimAngle - StoppedSurfaceAimAingle);
-		/* Root */
-		RootYaw = SurfaceVelocity ? 0.f : -TurnedSurfaceAimAngle;
+		/* Root 
+		 * this root rotatioin is needed when character is using controller's yaw
+		 * you just can't harness aimoffset's yaw while character is using controller's yaw, because character yaws itself instead of staying still and looking sides
+		 * so we do illusionary opposite root bone rotation which makes character staying still 
+		 * can test this with any zeropose */
+		RootYaw = (SurfaceVelocity || !bIsWeaponEquipped) ? 0.f : -TurnedSurfaceAimAngle;
 
 		//int TurnDirection = (Lean > 0.f) ? 1 : (Lean < 0.f) ? -1 : 0;
-		//NANI_LOG(Warning, "AimYaw: %f | RootYaw: %f | Stopped: %f | Turned: %f", AimPitch, RootYaw, StoppedSurfaceAimAingle, TurnedSurfaceAimAngle);
+		NANI_LOG(Warning, "Stopped: %f | Turned: %f | Root: %f", StoppedSurfaceAimAingle, TurnedSurfaceAimAngle, RootYaw);
 	}
 }

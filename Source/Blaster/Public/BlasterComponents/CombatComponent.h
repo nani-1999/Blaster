@@ -23,9 +23,14 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
+	/* Character Movement */
+	void SetOrientRotationToMovement(bool bOrient);
+
 	/* Weapon */
-	UPROPERTY(Replicated)
+	UPROPERTY(ReplicatedUsing = OnRep_EquippedWeapon)
 	TObjectPtr<AWeapon> EquippedWeapon;
+	UFUNCTION()
+	void OnRep_EquippedWeapon(AWeapon* OldEquippedWeapon);
 
 	/* Walk Speed */
 	void SetWalkSpeed(float WalkSpeedToSet);

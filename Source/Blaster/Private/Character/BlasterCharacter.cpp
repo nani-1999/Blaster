@@ -41,8 +41,10 @@ ABlasterCharacter::ABlasterCharacter()
 	Combat = CreateDefaultSubobject<UCombatComponent>("Combat");
 	Combat->SetIsReplicated(true);
 
-	/* Controller */
-	bUseControllerRotationYaw = true; /* since other two axis are false by default */
+	/* OrientRotationToMovement */
+	bUseControllerRotationYaw = false; /* since other two axis are false by default */
+	GetCharacterMovement()->bOrientRotationToMovement = true;
+
 	/* Character Movement */
 	GetCharacterMovement()->MaxWalkSpeed = Combat->GetBaseWalkSpeed();
 	GetCharacterMovement()->JumpZVelocity = 1600.f;
