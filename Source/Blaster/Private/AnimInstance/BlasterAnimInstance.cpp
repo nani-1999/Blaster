@@ -19,7 +19,7 @@ float NormalizeRotationAxis(float Angle) {
 	return Normalized;
 }
 */
-float RAInterpTo(float CurrentRotationAxis, float TargetRotationAxis, float DeltaTime, float InterpSpeed) {
+float RAInterpTo(float CurrentRotationAxis, float TargetRotationAxis, float DeltaTime, float InterpSpeed, float SMALL_NUM = UE_KINDA_SMALL_NUMBER) {
 	if (InterpSpeed <= 0.f)
 	{
 		return TargetRotationAxis;
@@ -27,7 +27,7 @@ float RAInterpTo(float CurrentRotationAxis, float TargetRotationAxis, float Delt
 
 	const float NormalizedAngle = FRotator::NormalizeAxis(TargetRotationAxis - CurrentRotationAxis);
 
-	if (FMath::Square(NormalizedAngle) < SMALL_NUMBER)
+	if (FMath::Square(NormalizedAngle) < SMALL_NUM)
 	{
 		return TargetRotationAxis;
 	}
@@ -72,19 +72,24 @@ void UBlasterAnimInstance::NativeUpdateAnimation(float DeltaSeconds) {
 		AimPitch = BaseAimRot.Pitch;
 
 		/* SurfaceAimAngle when SurfaceVelocity is Zero */
-		StoppedSurfaceAimAingle = SurfaceVelocity ? SurfaceAimAngle : StoppedSurfaceAimAingle; ////////////////interp stoppedsurface to actual surface
+		StoppedSurfaceAimAingle = (SurfaceVelocity) ? SurfaceAimAngle : StoppedSurfaceAimAingle; ////////////////interp stoppedsurface to actual surface
 		/* Angle between SurfaceAimAngle and StoppedSurfaceAimAngle, StopTurnedSurfaceAimAngle specifically
 		 * usually used for Root rotation while idlying 
 		 * can zero out when velocity, since SurfaceAimAngle cancles itself */
 		TurnedSurfaceAimAngle = FRotator::NormalizeAxis(SurfaceAimAngle - StoppedSurfaceAimAingle);
+		/* TurnInPlace */
+		if (TurnedSurfaceAimAngle > 90.f || TurnedSurfaceAimAngle < -90.f) bTurning = true; /* start turning */
+		if (StoppedSurfaceAimAingle == SurfaceAimAngle) bTurning = false; /* won't stop until stopangle interp to actualangle */
+		if (bTurning) StoppedSurfaceAimAingle = RAInterpTo(StoppedSurfaceAimAingle, SurfaceAimAngle, DeltaSeconds, 5.f, 1.f);
+		TurnDirection = (Lean > 0.f) ? 1 : (Lean < 0.f) ? -1 : 0;
 		/* Root 
 		 * this root rotatioin is needed when character is using controller's yaw
 		 * you just can't harness aimoffset's yaw while character is using controller's yaw, because character yaws itself instead of staying still and looking sides
 		 * so we do illusionary opposite root bone rotation which makes character staying still 
 		 * can test this with any zeropose */
 		RootYaw = (SurfaceVelocity || !bIsWeaponEquipped) ? 0.f : -TurnedSurfaceAimAngle;
+		SmoothRootYaw = RAInterpTo(SmoothRootYaw, RootYaw, DeltaSeconds, 5.f);
 
-		//int TurnDirection = (Lean > 0.f) ? 1 : (Lean < 0.f) ? -1 : 0;
 		NANI_LOG(Warning, "Stopped: %f | Turned: %f | Root: %f", StoppedSurfaceAimAingle, TurnedSurfaceAimAngle, RootYaw);
 	}
 }

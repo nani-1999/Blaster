@@ -53,9 +53,18 @@ public:
 	float AimPitch;
 
 	/* Rotate Root Bone */
-	UPROPERTY(BlueprintReadOnly)
-	float RootYaw;
 	float StoppedSurfaceAimAingle;
 	UPROPERTY(BlueprintReadOnly)
 	float TurnedSurfaceAimAngle;
+
+	UPROPERTY(BlueprintReadOnly)
+	float RootYaw;
+	UPROPERTY(BlueprintReadOnly)
+	float SmoothRootYaw;
+
+	/* TurnInPlace */
+	UPROPERTY(BlueprintReadOnly)
+	bool bTurning;
+	UPROPERTY(BlueprintReadOnly)
+	int TurnDirection;
 };

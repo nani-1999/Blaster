@@ -2,6 +2,8 @@
 
 #pragma once
 
+#define NANI_SMALL_NUMBER 0.01f
+
 #define NANI_LOG(Verbosity, Str, ...) \
 	switch (GetWorld()->GetNetMode()) { \
 		case ENetMode::NM_Client: \
