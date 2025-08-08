@@ -79,6 +79,11 @@ void UCombatComponent::OnRep_EquippedWeapon(AWeapon* OldEquippedWeapon) {
 	SetOrientRotationToMovement(EquippedWeapon ? false : true);
 }
 
+FTransform UCombatComponent::GetWeaponLeftHandSocketTransform() const {
+	if (EquippedWeapon) return EquippedWeapon->GetLeftHandSocketTransform();
+	return FTransform();
+}
+
 //
 //============================================ Walk Speed ============================================
 //

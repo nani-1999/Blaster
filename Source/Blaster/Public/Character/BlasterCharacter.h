@@ -56,6 +56,8 @@ protected:
 	UFUNCTION()
 	void CrouchPressed();
 
+	virtual	void Jump() override;
+
 	UFUNCTION()
 	void AimPressed();
 	UFUNCTION(Server, Reliable)
@@ -95,6 +97,7 @@ protected:
 public:
 	/* Weapon */
 	void SetOverlappingWeapon(AWeapon* WeaponToSet);
+	FTransform GetWeaponLeftHandSocketTransform() const;
 
 	/* Getters */
 	bool IsInAir();

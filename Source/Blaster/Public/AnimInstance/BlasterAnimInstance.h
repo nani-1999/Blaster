@@ -12,6 +12,8 @@ class BLASTER_API UBlasterAnimInstance : public UAnimInstance
 	GENERATED_BODY()
 	
 public:
+	virtual void NativeInitializeAnimation() override;
+
 	//virtual void NativeInitializeAnimation() override;
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 
@@ -65,6 +67,8 @@ public:
 	/* TurnInPlace */
 	UPROPERTY(BlueprintReadOnly)
 	bool bTurning;
+
+	/* FABRIK */
 	UPROPERTY(BlueprintReadOnly)
-	int TurnDirection;
+	FTransform LeftHandBoneTransform;
 };

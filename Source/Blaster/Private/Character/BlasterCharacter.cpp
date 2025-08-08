@@ -20,6 +20,9 @@
 ABlasterCharacter::ABlasterCharacter()
 {
 	PrimaryActorTick.bCanEverTick = true;
+	/* Network */
+	NetUpdateFrequency = 66.f;
+	MinNetUpdateFrequency = 33.f;
 
 	/* Unblocking Camera over Pawn */
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
@@ -123,6 +126,11 @@ void ABlasterCharacter::OnRep_OverlappingWeapon(AWeapon* OldWeapon) const {
 	}
 }
 
+FTransform ABlasterCharacter::GetWeaponLeftHandSocketTransform() const {
+	if (Combat) return Combat->GetWeaponLeftHandSocketTransform();
+	return FTransform();
+}
+
 //
 //============================================ Replication ============================================
 //
@@ -171,7 +179,7 @@ void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	PlayerInputComponent->BindAxis("LookUp", this, &ABlasterCharacter::LookUp);
 	PlayerInputComponent->BindAxis("Turn", this, &ABlasterCharacter::Turn);
 
-	PlayerInputComponent->BindAction("Jump", EInputEvent::IE_Pressed, this, &ACharacter::Jump);
+	PlayerInputComponent->BindAction("Jump", EInputEvent::IE_Pressed, this, &ABlasterCharacter::Jump);
 	PlayerInputComponent->BindAction("Equip", EInputEvent::IE_Pressed, this, &ABlasterCharacter::EquipPressed);
 	PlayerInputComponent->BindAction("Crouch", EInputEvent::IE_Pressed, this, &ABlasterCharacter::CrouchPressed);
 	PlayerInputComponent->BindAction("Aim", EInputEvent::IE_Pressed, this, &ABlasterCharacter::AimPressed);
@@ -223,6 +231,15 @@ void ABlasterCharacter::CrouchPressed() {
 	}
 	else {
 		Crouch();
+	}
+}
+
+void ABlasterCharacter::Jump() {
+	if (bIsCrouched) {
+		UnCrouch();
+	}
+	else {
+		ACharacter::Jump();
 	}
 }
 

@@ -48,6 +48,7 @@ protected:
 public:
 	/* Weapon */
 	void EquipWeapon(AWeapon* WeaponToEquip);
+	FTransform GetWeaponLeftHandSocketTransform() const;
 
 	/* Getters */
 	FORCEINLINE AWeapon* GetEquippedWeapon() const { return EquippedWeapon; }

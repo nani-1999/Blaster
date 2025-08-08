@@ -65,4 +65,7 @@ public:
 
 	/* Setters */
 	void SetWeaponState(EWeaponState State) { WeaponState = State; UpdateWeaponBasedOnCurrentWeaponState(); }
+
+	/* Getters */
+	FTransform GetLeftHandSocketTransform() const;
 };

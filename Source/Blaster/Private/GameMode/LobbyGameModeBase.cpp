@@ -25,7 +25,7 @@ void ALobbyGameModeBase::PostLogin(APlayerController* NewPlayer) {
 		if (GEngine) GEngine->AddOnScreenDebugMessage(21, 20.f, FColor::Black, FString::Printf(TEXT("%s | Server Travel"), *GetNetModeStr<FString>(GetWorld()->GetNetMode())));
 		if (NumberOfPlayers >= 2) {
 			bUseSeamlessTravel = true;
-			//GetWorld()->ServerTravel(FString("/Game/Levels/OpenWorldLevel?listen"));
+			GetWorld()->ServerTravel(FString("/Game/Levels/OpenWorldLevel?listen"));
 		}
 	}
 }

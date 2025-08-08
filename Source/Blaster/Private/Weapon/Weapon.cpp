@@ -117,3 +117,10 @@ void AWeapon::UpdateWeaponBasedOnCurrentWeaponState() {
 			break;
 	}
 }
+
+//
+//============================================ Socket ============================================
+//
+FTransform AWeapon::GetLeftHandSocketTransform() const {
+	return WeaponMesh->GetSocketTransform(FName("LeftHandSocket")); /* getting world space by default */
+}
