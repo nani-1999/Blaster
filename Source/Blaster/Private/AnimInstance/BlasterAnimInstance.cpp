@@ -36,6 +36,14 @@ float RAInterpTo(float CurrentRotationAxis, float TargetRotationAxis, float Delt
 
 	return FRotator::NormalizeAxis(CurrentRotationAxis + DeltaRotationAxis); /* normalized here also */
 }
+float FindOppositeAngle(float angle) {
+	if (angle > 0.f) {
+		return angle - 180.f;
+	}
+	else {
+		return angle + 180.f;
+	}
+}
 
 void UBlasterAnimInstance::NativeInitializeAnimation() {
 	Super::NativeInitializeAnimation();
@@ -73,7 +81,7 @@ void UBlasterAnimInstance::NativeUpdateAnimation(float DeltaSeconds) {
 		float SurfaceAimAngle = BaseAimRot.Yaw;
 		float SurfaceVelocityAngle = FMath::Atan2(Velocity3D.Y, Velocity3D.X) * (180.f / PI);
 		Strafe = (SurfaceVelocity) ? FRotator::NormalizeAxis(SurfaceVelocityAngle - SurfaceAimAngle) : 0.f;
-		SmoothStrafe = (SurfaceVelocity) ? RAInterpTo(SmoothStrafe, Strafe, DeltaSeconds, 5.f) : 0.f;
+		SmoothStrafe = (SurfaceVelocity) ? RAInterpTo(SmoothStrafe, Strafe, DeltaSeconds, 10.f) : 0.f;
 
 		/* Lean 
 		 * for smoothing lean, we did that in blend space
