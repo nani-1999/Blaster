@@ -9,6 +9,8 @@
 class USkeletalMeshComponent;
 class UBoxComponent;
 class UWidgetComponent;
+class UAnimationAsset;
+class ACasing;
 
 UENUM()
 enum class EWeaponState : uint8 {
@@ -18,7 +20,7 @@ enum class EWeaponState : uint8 {
 	EWS_MAX
 };
 
-UCLASS()
+UCLASS(Abstract)
 class BLASTER_API AWeapon : public AActor
 {
 	GENERATED_BODY()
@@ -37,6 +39,9 @@ protected:
 	/* Mesh */
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<USkeletalMeshComponent> WeaponMesh;
+	/* Animation */
+	UPROPERTY(EditDefaultsOnly)
+	TObjectPtr<UAnimationAsset> FireAnimation;
 
 	/* Area Box */
 	UPROPERTY(VisibleAnywhere)
@@ -54,18 +59,25 @@ protected:
 	UPROPERTY(ReplicatedUsing = OnRep_WeaponState)
 	EWeaponState WeaponState;
 
-	void UpdateWeaponBasedOnCurrentWeaponState();
+	void UpdateWeaponState();
 
 	UFUNCTION()
-	void OnRep_WeaponState(EWeaponState OldState) { UpdateWeaponBasedOnCurrentWeaponState(); }
+	void OnRep_WeaponState(EWeaponState OldState) { UpdateWeaponState(); }
+
+	/* Casing */
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<ACasing> CasingClass;
 
 public:
 	/* Pickup Widget */
 	void ShowPickupWidget(bool bShow);
 
-	/* Setters */
-	void SetWeaponState(EWeaponState State) { WeaponState = State; UpdateWeaponBasedOnCurrentWeaponState(); }
+	/* Weapon State */
+	void SetWeaponState(EWeaponState State) { WeaponState = State; UpdateWeaponState(); }
 
 	/* Getters */
 	FTransform GetLeftHandSocketTransform() const;
+
+	/* Fire */
+	virtual void Fire(const FVector& ProjectileHitTarget);
 };

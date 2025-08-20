@@ -7,6 +7,7 @@
 #include "CombatComponent.generated.h"
 
 class AWeapon;
+class UAnimMontage;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class BLASTER_API UCombatComponent : public UActorComponent
@@ -45,6 +46,22 @@ protected:
 	UFUNCTION()
 	void OnRep_Aiming(bool OldAiming);
 
+	/* HitScan */
+	void TraceUnderCursor(FHitResult& OutHitResult, FVector& EndPoint, float TraceLength = 5000.f);
+
+	/* Fire */
+	UFUNCTION(Server, Reliable)
+	void ServerFiring(bool bIsFiring, const FVector_NetQuantize HitTarget);
+
+	UPROPERTY(ReplicatedUsing = OnRep_Firing)
+	bool bFiring;
+	UFUNCTION()
+	void OnRep_Firing(bool OldFiring);
+
+	UPROPERTY(EditDefaultsOnly)
+	TObjectPtr<UAnimMontage> FireMontage;
+	void PlayCharacterFireMontage();
+
 public:
 	/* Weapon */
 	void EquipWeapon(AWeapon* WeaponToEquip);
@@ -57,4 +74,7 @@ public:
 
 	/* Aim */
 	void SetAiming(bool bIsAiming);
+
+	/* Fire */
+	void SetFiring(bool bIsFiring);
 };

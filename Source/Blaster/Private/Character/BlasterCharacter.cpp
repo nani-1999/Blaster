@@ -19,7 +19,7 @@
 
 ABlasterCharacter::ABlasterCharacter()
 {
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 	/* Network */
 	NetUpdateFrequency = 66.f;
 	MinNetUpdateFrequency = 33.f;
@@ -32,7 +32,8 @@ ABlasterCharacter::ABlasterCharacter()
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>("CameraBoom");
 	CameraBoom->SetupAttachment(GetMesh()); /* idk why mesh tho, maybe because to move boom along the animations */
 	//CameraBoom->SetUsingAbsoluteRotation(true);
-	CameraBoom->TargetArmLength = 600.f;
+	CameraBoom->TargetArmLength = 350.f;
+	CameraBoom->SocketOffset = FVector(0.f, 75.f, 75.f); /* offsetting cameraboom's end point to the right and up, so that the character is not on the way of crosshair */
 	CameraBoom->bUsePawnControlRotation = true;
 
 	/* Follow Camera */
@@ -74,7 +75,7 @@ ABlasterCharacter::ABlasterCharacter()
 	 * also crouch is auto replicated since its handled by CharacterMovement 
 	 * replication triggered by changing bWantsToCrouch, it also checking if can crouch */
 	GetCharacterMovement()->NavAgentProps.bCanCrouch = true;
-	GetCharacterMovement()->CrouchedHalfHeight = 60.f;
+	GetCharacterMovement()->SetCrouchedHalfHeight(60.f); /* accessing CrouchedHalfHeight directly is depricated, using set instead */
 	GetCharacterMovement()->MaxWalkSpeedCrouched = 200.f;
 }
 
@@ -184,6 +185,8 @@ void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	PlayerInputComponent->BindAction("Crouch", EInputEvent::IE_Pressed, this, &ABlasterCharacter::CrouchPressed);
 	PlayerInputComponent->BindAction("Aim", EInputEvent::IE_Pressed, this, &ABlasterCharacter::AimPressed);
 	PlayerInputComponent->BindAction("Aim", EInputEvent::IE_Released, this, &ABlasterCharacter::AimReleased);
+	PlayerInputComponent->BindAction("Fire", EInputEvent::IE_Pressed, this, &ABlasterCharacter::FirePressed);
+	PlayerInputComponent->BindAction("Fire", EInputEvent::IE_Released, this, &ABlasterCharacter::FireReleased);
 }
 
 void ABlasterCharacter::MoveForward(const float Value) {
@@ -264,6 +267,14 @@ void ABlasterCharacter::AimReleased() {
 }
 void ABlasterCharacter::ServerAimReleased_Implementation() {
 	if (Combat) Combat->SetAiming(false);
+}
+
+void ABlasterCharacter::FirePressed() {
+	/* since RPCs are handled by Combat Component */
+	if (Combat) Combat->SetFiring(true);
+}
+void ABlasterCharacter::FireReleased() {
+	if (Combat) Combat->SetFiring(false);
 }
 
 //

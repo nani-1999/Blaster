@@ -2,12 +2,15 @@
 
 
 #include "Weapon/Weapon.h"
-//#include "Components/SkeletalMeshComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Components/BoxComponent.h"
 #include "Components/WidgetComponent.h"
 #include "UI/Widget/TextWidget.h"
 #include "Character/BlasterCharacter.h"
 #include "Net/UnrealNetwork.h"
+#include "Animation/AnimationAsset.h"
+#include "Weapon/Casing.h"
+#include "Engine/SkeletalMeshSocket.h"
 
 #include "Blaster/Nani/NaniUtility.h"
 
@@ -20,8 +23,8 @@ AWeapon::AWeapon()
 	WeaponMesh = CreateDefaultSubobject<USkeletalMeshComponent>("WeaponMesh");
 	SetRootComponent(WeaponMesh);
 
+	/*  */
 	WeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	WeaponMesh->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 	WeaponMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
 	WeaponMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Block);
 	WeaponMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Block);
@@ -103,7 +106,7 @@ void AWeapon::ShowPickupWidget(bool bShow) {
 //
 //============================================ Weapon State ============================================
 //
-void AWeapon::UpdateWeaponBasedOnCurrentWeaponState() {
+void AWeapon::UpdateWeaponState() {
 	switch (WeaponState) {
 		case EWeaponState::EWS_Equipped:
 			AreaBox->SetCollisionEnabled(ECollisionEnabled::NoCollision); /* this will also triggers end overlap, which sets overlapping weapon to nullptr */
@@ -123,4 +126,21 @@ void AWeapon::UpdateWeaponBasedOnCurrentWeaponState() {
 //
 FTransform AWeapon::GetLeftHandSocketTransform() const {
 	return WeaponMesh->GetSocketTransform(FName("LeftHandSocket")); /* getting world space by default */
+}
+
+//
+//============================================ Fire ============================================
+//
+void AWeapon::Fire(const FVector& ProjectileHitTarget) {
+	/* Playing Weapon Fire Animation */
+	if (FireAnimation) WeaponMesh->PlayAnimation(FireAnimation, false);
+
+	/* Spawning Weapon Shell */
+	if (CasingClass) {
+		const USkeletalMeshSocket* AmmoEjectSocket = WeaponMesh->GetSocketByName(FName("AmmoEject"));
+		if (AmmoEjectSocket) {
+			FTransform AmmoEjectSocketTransform = AmmoEjectSocket->GetSocketTransform(WeaponMesh);
+			GetWorld()->SpawnActor<ACasing>(CasingClass, AmmoEjectSocketTransform);
+		}
+	}
 }

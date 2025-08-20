@@ -54,6 +54,11 @@ protected:
 	void ServerEquipPressed();
 
 	UFUNCTION()
+	void FirePressed();
+	UFUNCTION()
+	void FireReleased();
+
+	UFUNCTION()
 	void CrouchPressed();
 
 	virtual	void Jump() override;
