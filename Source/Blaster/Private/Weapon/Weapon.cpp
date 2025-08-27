@@ -14,7 +14,9 @@
 
 #include "Blaster/Nani/NaniUtility.h"
 
-AWeapon::AWeapon()
+AWeapon::AWeapon() :
+	AimedFOV{ 30.f },
+	FOVInterpSpeed{ 20.f }
 {
 	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = true;

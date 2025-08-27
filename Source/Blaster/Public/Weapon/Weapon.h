@@ -68,6 +68,12 @@ protected:
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<ACasing> CasingClass;
 
+	/* Field Of View */
+	UPROPERTY(EditDefaultsOnly)
+	float AimedFOV;
+	UPROPERTY(EditDefaultsOnly)
+	float FOVInterpSpeed;
+
 public:
 	/* Pickup Widget */
 	void ShowPickupWidget(bool bShow);
@@ -75,9 +81,25 @@ public:
 	/* Weapon State */
 	void SetWeaponState(EWeaponState State) { WeaponState = State; UpdateWeaponState(); }
 
-	/* Getters */
+	/* Socket */
 	FTransform GetLeftHandSocketTransform() const;
 
 	/* Fire */
 	virtual void Fire(const FVector& ProjectileHitTarget);
+
+	/* Crosshair */
+	UPROPERTY(EditDefaultsOnly)
+	TObjectPtr<UTexture2D> CrosshairCenter;
+	UPROPERTY(EditDefaultsOnly)
+	TObjectPtr<UTexture2D> CrosshairTop;
+	UPROPERTY(EditDefaultsOnly)
+	TObjectPtr<UTexture2D> CrosshairRight;
+	UPROPERTY(EditDefaultsOnly)
+	TObjectPtr<UTexture2D> CrosshairBottom;
+	UPROPERTY(EditDefaultsOnly)
+	TObjectPtr<UTexture2D> CrosshairLeft;
+
+	/* Field Of View */
+	FORCEINLINE float GetAimedFOV() const { return AimedFOV; }
+	FORCEINLINE float GetFOVInterpSpeed() const { return FOVInterpSpeed; }
 };

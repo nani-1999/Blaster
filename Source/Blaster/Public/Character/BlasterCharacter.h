@@ -78,6 +78,11 @@ protected:
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<USkeletalMeshComponent> WeaponMesh;
 
+	UFUNCTION()
+	void TestPressed();
+	UFUNCTION(Server, Reliable)
+	void ServerTestPressed();
+
 	/* Camera */
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<USpringArmComponent> CameraBoom;

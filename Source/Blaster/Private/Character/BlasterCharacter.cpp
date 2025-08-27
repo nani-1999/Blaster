@@ -83,6 +83,9 @@ void ABlasterCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
+	/* must be in beginplay not in object creation, since we need to know network role 
+	 * combat component needs camera for fov interping while aiming */
+	if (IsLocallyControlled()) Combat->SetCamera(FollowCamera);
 }
 
 void ABlasterCharacter::Tick(float DeltaTime)
@@ -187,6 +190,16 @@ void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	PlayerInputComponent->BindAction("Aim", EInputEvent::IE_Released, this, &ABlasterCharacter::AimReleased);
 	PlayerInputComponent->BindAction("Fire", EInputEvent::IE_Pressed, this, &ABlasterCharacter::FirePressed);
 	PlayerInputComponent->BindAction("Fire", EInputEvent::IE_Released, this, &ABlasterCharacter::FireReleased);
+
+	PlayerInputComponent->BindAction("Test", EInputEvent::IE_Pressed, this, &ABlasterCharacter::TestPressed);
+}
+
+void ABlasterCharacter::TestPressed() {
+	//NANI_LOG(Warning, "TestPressed");
+	ServerTestPressed();
+}
+void ABlasterCharacter::ServerTestPressed_Implementation() {
+	//NANI_LOG(Warning, "ServerTestPressed");
 }
 
 void ABlasterCharacter::MoveForward(const float Value) {
@@ -215,12 +228,14 @@ void ABlasterCharacter::Turn(const float Value) {
 }
 
 void ABlasterCharacter::EquipPressed() {
-	if (HasAuthority()) {
+	/*if (HasAuthority()) {
 		if (Combat) Combat->EquipWeapon(OverlappingWeapon);
 	}
 	else {
 		ServerEquipPressed();
-	}
+	}*/
+
+	ServerEquipPressed();
 }
 void ABlasterCharacter::ServerEquipPressed_Implementation() {
 	if (Combat) Combat->EquipWeapon(OverlappingWeapon);
@@ -247,23 +262,27 @@ void ABlasterCharacter::Jump() {
 }
 
 void ABlasterCharacter::AimPressed() {
-	if (HasAuthority()) {
+	/*if (HasAuthority()) {
 		if (Combat) Combat->SetAiming(true);
 	}
 	else {
 		ServerAimPressed();
-	}
+	}*/
+
+	ServerAimPressed();
 }
 void ABlasterCharacter::ServerAimPressed_Implementation() {
 	if (Combat) Combat->SetAiming(true);
 }
 void ABlasterCharacter::AimReleased() {
-	if (HasAuthority()) {
+	/*if (HasAuthority()) {
 		if (Combat) Combat->SetAiming(false);
 	}
 	else {
 		ServerAimReleased();
-	}
+	}*/
+
+	ServerAimReleased();
 }
 void ABlasterCharacter::ServerAimReleased_Implementation() {
 	if (Combat) Combat->SetAiming(false);

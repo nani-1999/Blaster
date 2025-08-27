@@ -8,16 +8,19 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Animation/AnimMontage.h"
 #include "Kismet/GameplayStatics.h"
+#include "UI/HUD/BlasterHUD.h"
+#include "Camera/CameraComponent.h"
 
 #include "Blaster/Nani/NaniUtility.h"
 #include "DrawDebugHelpers.h"
 
 UCombatComponent::UCombatComponent() :
 	BaseWalkSpeed{ 600.f },
-	AimWalkSpeed{ 300.f }
+	AimWalkSpeed{ 300.f },
+	BaseFOV{ 90.f },
+	InterpedFOV{ BaseFOV }
 {
 	PrimaryComponentTick.bCanEverTick = true;
-
 }
 
 void UCombatComponent::BeginPlay()
@@ -31,13 +34,34 @@ void UCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	// @DEBUG
+	//ACharacter* CompOwner = GetOwner<ACharacter>();
+	//if (CompOwner && CompOwner->IsLocallyControlled()) {
+	//	FHitResult CursorTraceHit;
+	//	FVector EndPoint;
+	//	TraceUnderCursor(CursorTraceHit, EndPoint);
+	//	DrawDebugSphere(GetWorld(), CursorTraceHit.bBlockingHit ? CursorTraceHit.ImpactPoint : EndPoint, 12.f, 12.f, FColor::Red);
+	//}
+
+	/* Locally Controlled Tick */
 	ACharacter* CompOwner = GetOwner<ACharacter>();
+
 	if (CompOwner && CompOwner->IsLocallyControlled()) {
-		FHitResult CursorTraceHit;
-		FVector EndPoint;
-		TraceUnderCursor(CursorTraceHit, EndPoint);
-		DrawDebugSphere(GetWorld(), CursorTraceHit.bBlockingHit ? CursorTraceHit.ImpactPoint : EndPoint, 12.f, 12.f, FColor::Red);
-	} 
+
+		/* generalizing some variables that are used in multiple function bodies */
+		bool bIsInAir = CompOwner->GetCharacterMovement()->IsFalling();
+
+		/* equipped specific */
+		if (EquippedWeapon) {
+			/* Updating HUD Crosshair */
+			UpdateHUDCrosshair(CompOwner, bIsInAir, DeltaTime);
+			/* Zoom While Aiming */
+			if (CompOwnerCamera) {
+				NANI_LOG(Warning, "FielfOfView: %f", CompOwnerCamera->FieldOfView);
+				InterpedFOV = FMath::FInterpTo(InterpedFOV, bAiming ? EquippedWeapon->GetAimedFOV() : BaseFOV, DeltaTime, EquippedWeapon->GetFOVInterpSpeed());
+				CompOwnerCamera->SetFieldOfView(InterpedFOV);
+			} 
+		}
+	}
 }
 
 void UCombatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const {
@@ -92,9 +116,47 @@ void UCombatComponent::OnRep_EquippedWeapon(AWeapon* OldEquippedWeapon) {
 	SetOrientRotationToMovement(EquippedWeapon ? false : true);
 }
 
+//
+//============================================ Socket ============================================
+//
 FTransform UCombatComponent::GetWeaponLeftHandSocketTransform() const {
 	if (EquippedWeapon) return EquippedWeapon->GetLeftHandSocketTransform();
 	return FTransform();
+}
+
+//
+//============================================ Crosshair ============================================
+//
+void UCombatComponent::UpdateHUDCrosshair(ACharacter* CompOwner, bool bIsInAir, float DeltaTime) {
+	//NANI_LOG(Warning, "UpdateHUDCrosshair");
+
+	APlayerController* CompOwnerCtrl = CompOwner->GetController<APlayerController>();
+	if (CompOwnerCtrl == nullptr) return;
+	ABlasterHUD* BlasterHUD = CompOwnerCtrl->GetHUD<ABlasterHUD>();
+	if (BlasterHUD == nullptr) return;
+
+	FCrosshairTextures Crosshair;
+	Crosshair.Center = EquippedWeapon->CrosshairCenter;
+	Crosshair.Top = EquippedWeapon->CrosshairTop;
+	Crosshair.Right = EquippedWeapon->CrosshairRight;
+	Crosshair.Bottom = EquippedWeapon->CrosshairBottom;
+	Crosshair.Left = EquippedWeapon->CrosshairLeft;
+
+	/* calculating all possible crosshair spread factors 
+	 * every each factor is of a rate from 0.f to 1.f */
+
+	/* surface velocity factor */
+	FVector2D VelocityRange(0.f, BaseWalkSpeed);
+	FVector2D RateRange(0.f, 1.f);
+	float Velocity = CompOwner->GetVelocity().Size2D();
+	CrosshairSurfaceFactor = FMath::GetMappedRangeValueClamped(VelocityRange, RateRange, Velocity);
+	/* in-air factor */
+	CrosshairInAirFactor = FMath::FInterpTo(CrosshairInAirFactor, bIsInAir ? 1.f : 0.f, DeltaTime, 10.f);
+	/* aiming factor */
+	CrosshairAimFactor = FMath::FInterpTo(CrosshairAimFactor, bAiming ? 0.f : 1.f, DeltaTime, 20.f);
+
+	float SumOfAllFactors = CrosshairSurfaceFactor + CrosshairInAirFactor + CrosshairAimFactor;
+	BlasterHUD->UpdateCrosshair(Crosshair, SumOfAllFactors);
 }
 
 //
@@ -199,7 +261,7 @@ void UCombatComponent::OnRep_Firing(bool OldFiring) {
 		/* play character fire animation */
 		PlayCharacterFireMontage();
 
-		/* this will only play weapon animation which has particle and sound 
+		/* play weapon animation which has particle and sound 
 		 * also shell eject
 		 * has auth check which prevents from spawning projectile */
 		EquippedWeapon->Fire(FVector::ZeroVector);

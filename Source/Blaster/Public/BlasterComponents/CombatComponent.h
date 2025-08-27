@@ -8,6 +8,7 @@
 
 class AWeapon;
 class UAnimMontage;
+class UCameraComponent;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class BLASTER_API UCombatComponent : public UActorComponent
@@ -46,6 +47,18 @@ protected:
 	UFUNCTION()
 	void OnRep_Aiming(bool OldAiming);
 
+	/* Crosshair */
+	void UpdateHUDCrosshair(ACharacter* CompOwner, bool bIsInAir, float DeltaTime);
+	float CrosshairSurfaceFactor;
+	float CrosshairInAirFactor;
+	float CrosshairAimFactor;
+
+	/* Field Of View */
+	UPROPERTY(EditDefaultsOnly)
+	float BaseFOV;
+	float InterpedFOV;
+	UCameraComponent* CompOwnerCamera; /* just using raw ptr since comp having other actor's comp is weird */
+
 	/* HitScan */
 	void TraceUnderCursor(FHitResult& OutHitResult, FVector& EndPoint, float TraceLength = 5000.f);
 
@@ -77,4 +90,7 @@ public:
 
 	/* Fire */
 	void SetFiring(bool bIsFiring);
+
+	/* Setters */
+	FORCEINLINE void SetCamera(UCameraComponent* Camera) { CompOwnerCamera = Camera; }
 };

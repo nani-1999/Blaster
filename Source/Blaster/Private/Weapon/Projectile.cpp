@@ -9,6 +9,8 @@
 #include "Particles/ParticleSystem.h"
 #include "Sound/SoundCue.h"
 
+#include "Blaster/Nani/NaniUtility.h"
+
 AProjectile::AProjectile() {
 	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = true;
