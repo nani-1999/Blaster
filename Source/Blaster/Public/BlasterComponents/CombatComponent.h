@@ -60,16 +60,18 @@ protected:
 	UCameraComponent* CompOwnerCamera; /* just using raw ptr since comp having other actor's comp is weird */
 
 	/* HitScan */
-	void TraceUnderCursor(FHitResult& OutHitResult, FVector& EndPoint, float TraceLength = 5000.f);
+	void TraceUnderCursor(FHitResult& OutHitResult, FVector& EndPoint, float TraceLength = 5000.f, bool bOffset = true);
 
 	/* Fire */
 	UFUNCTION(Server, Reliable)
-	void ServerFiring(bool bIsFiring, const FVector_NetQuantize HitTarget);
+	void ServerFire(const FVector_NetQuantize HitTarget);
+	UFUNCTION(NetMulticast, Unreliable)
+	void MulticastFire();
 
-	UPROPERTY(ReplicatedUsing = OnRep_Firing)
-	bool bFiring;
-	UFUNCTION()
-	void OnRep_Firing(bool OldFiring);
+	//UPROPERTY(ReplicatedUsing = OnRep_Firing)
+	//bool bFiring;
+	//UFUNCTION()
+	//void OnRep_Firing(bool OldFiring);
 
 	UPROPERTY(EditDefaultsOnly)
 	TObjectPtr<UAnimMontage> FireMontage;
@@ -93,4 +95,8 @@ public:
 
 	/* Setters */
 	FORCEINLINE void SetCamera(UCameraComponent* Camera) { CompOwnerCamera = Camera; }
+
+	/* HIt */
+	UFUNCTION(NetMulticast, Unreliable)
+	void MulticastHit();
 };

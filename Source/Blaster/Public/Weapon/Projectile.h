@@ -25,7 +25,8 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-	/* Collision */
+	/* Collision 
+	 * public, to prevent two way dependency */
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UBoxComponent> BoxCollision;
 
@@ -48,4 +49,8 @@ protected:
 	/* Events */
 	UFUNCTION()
 	void OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
+
+public:
+	/* Getters */
+	FORCEINLINE UBoxComponent* GetBoxComp() const { return BoxCollision; }
 };

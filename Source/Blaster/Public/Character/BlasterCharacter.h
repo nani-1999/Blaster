@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Interface/CombatInterface.h"
 #include "BlasterCharacter.generated.h"
 
 class USpringArmComponent;
@@ -16,7 +17,7 @@ class UStaticMeshComponent;
 class USkeletalMeshComponent;
 
 UCLASS()
-class BLASTER_API ABlasterCharacter : public ACharacter
+class BLASTER_API ABlasterCharacter : public ACharacter, public ICombatInterface
 {
 	GENERATED_BODY()
 
@@ -103,6 +104,9 @@ protected:
 	/* Combat */
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UCombatComponent> Combat;
+
+	/* Combat Interface */
+	virtual UCombatComponent* GetCombatComponent() const override { return Combat; }
 
 public:
 	/* Weapon */

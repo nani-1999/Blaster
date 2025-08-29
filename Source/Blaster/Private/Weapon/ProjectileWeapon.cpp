@@ -4,7 +4,11 @@
 #include "Weapon/ProjectileWeapon.h"
 #include "Weapon/Projectile.h"
 #include "Engine/SkeletalMeshSocket.h"
+#include "Components/BoxComponent.h"
+#include "Interface/CombatInterface.h"
+#include "BlasterComponents/CombatComponent.h"
 
+#include "Blaster/Nani/NaniUtility.h"
 
 AProjectileWeapon::AProjectileWeapon() {
 	PrimaryActorTick.bCanEverTick = false;
@@ -22,23 +26,34 @@ void AProjectileWeapon::BeginPlay() {
 }
 
 //
-//============================================ Fire ============================================
+//============================================ Fire Bullet ============================================
 //
-void AProjectileWeapon::Fire(const FVector& ProjectileHitTarget) {
-	Super::Fire(ProjectileHitTarget);
+void AProjectileWeapon::FireBullet(const FVector& HitTarget) {
+	Super::FireBullet(HitTarget);
 
-	if (ProjectileClass == nullptr || !HasAuthority()) return;
+	/* happens on Authority */
+	if (!HasAuthority() || ProjectileClass == nullptr) return;
 
 	/* Weapon Muzzle Socket */
 	const USkeletalMeshSocket* MuzzleSocket = WeaponMesh->GetSocketByName(FName("MuzzleFlash"));
 	if (MuzzleSocket == nullptr) return;
 	FTransform MuzzleSocketTransform = MuzzleSocket->GetSocketTransform(WeaponMesh);
-	MuzzleSocketTransform.SetRotation(FQuat((ProjectileHitTarget - MuzzleSocketTransform.GetLocation()).Rotation()));
+	MuzzleSocketTransform.SetRotation(FQuat((HitTarget - MuzzleSocketTransform.GetLocation()).Rotation()));
 
 	/* Spawning Weapon Bullet */
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.Owner = this; /* this weapon */
 	SpawnParams.Instigator = GetOwner<APawn>(); /* this weapon's owner */
 
-	GetWorld()->SpawnActor<AProjectile>(ProjectileClass, MuzzleSocketTransform, SpawnParams);
+	AProjectile* Projectile = GetWorld()->SpawnActor<AProjectile>(ProjectileClass, MuzzleSocketTransform, SpawnParams);
+	Projectile->GetBoxComp()->OnComponentHit.AddDynamic(this, &AProjectileWeapon::OnProjectileHit);
+}
+
+void AProjectileWeapon::OnProjectileHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit) {
+	/* happens on Authority */
+
+	if (ICombatInterface* CombatInterface = Cast<ICombatInterface>(OtherActor)) {
+		UCombatComponent* CombatComp = CombatInterface->GetCombatComponent();
+		if (CombatComp) CombatComp->MulticastHit();
+	}
 }

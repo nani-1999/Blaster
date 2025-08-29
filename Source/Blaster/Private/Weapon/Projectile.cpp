@@ -9,7 +9,6 @@
 #include "Particles/ParticleSystem.h"
 #include "Sound/SoundCue.h"
 
-#include "Blaster/Nani/NaniUtility.h"
 
 AProjectile::AProjectile() {
 	PrimaryActorTick.bCanEverTick = false;
@@ -51,9 +50,14 @@ void AProjectile::Tick(float DeltaTime)
 }
 
 void AProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit) {
-	/* cannot do this particle and sound in Destroyed() function, since net relevancy is a factor */
+	/* cannot do this particle and sound in override Destroyed() function, since net relevancy is a factor */
 	if (ImpactParticle) UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ImpactParticle, GetActorTransform());
 	if (ImpactSound) UGameplayStatics::PlaySoundAtLocation(this, ImpactSound, GetActorLocation());
 
+	/* if we destroy a replicated actor on client
+	 * the actor still exist on server 
+	 * means on client the actor channel is still exist on its netdriver
+	 * which might trigger respawning of actor, this happens very fast we might not know the difference 
+	 * so destroy replicated actor only on server */
 	if (HasAuthority()) Destroy();
 }

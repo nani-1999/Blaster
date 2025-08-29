@@ -33,6 +33,7 @@ protected:
 	FCrosshairTextures Crosshair;
 
 	float CrosshairSpreadRate;
+	FLinearColor CrosshairTintColor;
 
 	UPROPERTY(EditDefaultsOnly)
 	float CrosshairSize = 32.f;
@@ -43,5 +44,9 @@ public:
 	virtual void DrawHUD() override;
 
 	/* Crosshair */
-	FORCEINLINE void UpdateCrosshair(FCrosshairTextures& NewCrosshair, float NewRate) { Crosshair = NewCrosshair; CrosshairSpreadRate = NewRate; }
+	FORCEINLINE void UpdateCrosshair(FCrosshairTextures& NewCrosshair, float NewRate, FLinearColor TintColor) { 
+		Crosshair = NewCrosshair; 
+		CrosshairSpreadRate = NewRate; 
+		CrosshairTintColor = TintColor; 
+	}
 };

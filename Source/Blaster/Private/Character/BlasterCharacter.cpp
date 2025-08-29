@@ -26,7 +26,10 @@ ABlasterCharacter::ABlasterCharacter()
 
 	/* Unblocking Camera over Pawn */
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
-	//GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
+	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
+
+	/* Crosshair Color */
+	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
 
 	/* Camera Boom */
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>("CameraBoom");
@@ -293,7 +296,7 @@ void ABlasterCharacter::FirePressed() {
 	if (Combat) Combat->SetFiring(true);
 }
 void ABlasterCharacter::FireReleased() {
-	if (Combat) Combat->SetFiring(false);
+	//if (Combat) Combat->SetFiring(false);
 }
 
 //

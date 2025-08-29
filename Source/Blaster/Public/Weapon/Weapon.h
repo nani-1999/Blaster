@@ -84,8 +84,11 @@ public:
 	/* Socket */
 	FTransform GetLeftHandSocketTransform() const;
 
-	/* Fire */
-	virtual void Fire(const FVector& ProjectileHitTarget);
+	/* Fire Bullet */
+	virtual void FireBullet(const FVector& HitTarget) { }
+
+	/* Animation */
+	void PlayFireAnimation();
 
 	/* Crosshair */
 	UPROPERTY(EditDefaultsOnly)

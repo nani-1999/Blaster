@@ -131,9 +131,9 @@ FTransform AWeapon::GetLeftHandSocketTransform() const {
 }
 
 //
-//============================================ Fire ============================================
+//============================================ Animation ============================================
 //
-void AWeapon::Fire(const FVector& ProjectileHitTarget) {
+void AWeapon::PlayFireAnimation() {
 	/* Playing Weapon Fire Animation */
 	if (FireAnimation) WeaponMesh->PlayAnimation(FireAnimation, false);
 

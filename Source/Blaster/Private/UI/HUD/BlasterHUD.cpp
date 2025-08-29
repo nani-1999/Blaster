@@ -21,17 +21,17 @@ void ABlasterHUD::DrawHUD() {
 
 void ABlasterHUD::DrawCrosshair(FVector2D DrawLoc) {
 	/* Center */
-	if (Crosshair.Center) DrawTexture(Crosshair.Center, DrawLoc.X, DrawLoc.Y, CrosshairSize, CrosshairSize, 0.f, 0.f, 1.f, 1.f);
+	if (Crosshair.Center) DrawTexture(Crosshair.Center, DrawLoc.X, DrawLoc.Y, CrosshairSize, CrosshairSize, 0.f, 0.f, 1.f, 1.f, CrosshairTintColor);
 	/* Top */
 	float CrosshairTextureTopLocationY = DrawLoc.Y - (CrosshairSize * CrosshairSpreadRate);
-	if (Crosshair.Top) DrawTexture(Crosshair.Top, DrawLoc.X, CrosshairTextureTopLocationY, CrosshairSize, CrosshairSize, 0.f, 0.f, 1.f, 1.f);
+	if (Crosshair.Top) DrawTexture(Crosshair.Top, DrawLoc.X, CrosshairTextureTopLocationY, CrosshairSize, CrosshairSize, 0.f, 0.f, 1.f, 1.f, CrosshairTintColor);
 	/* Right */
 	float CrosshairTextureRightLocationX = DrawLoc.X + (CrosshairSize * CrosshairSpreadRate);
-	if (Crosshair.Right) DrawTexture(Crosshair.Right, CrosshairTextureRightLocationX, DrawLoc.Y, CrosshairSize, CrosshairSize, 0.f, 0.f, 1.f, 1.f);
+	if (Crosshair.Right) DrawTexture(Crosshair.Right, CrosshairTextureRightLocationX, DrawLoc.Y, CrosshairSize, CrosshairSize, 0.f, 0.f, 1.f, 1.f, CrosshairTintColor);
 	/* Bottom */
 	float CrosshairTextureBottomLocationY = DrawLoc.Y + (CrosshairSize * CrosshairSpreadRate);
-	if (Crosshair.Bottom) DrawTexture(Crosshair.Bottom, DrawLoc.X, CrosshairTextureBottomLocationY, CrosshairSize, CrosshairSize, 0.f, 0.f, 1.f, 1.f);
+	if (Crosshair.Bottom) DrawTexture(Crosshair.Bottom, DrawLoc.X, CrosshairTextureBottomLocationY, CrosshairSize, CrosshairSize, 0.f, 0.f, 1.f, 1.f, CrosshairTintColor);
 	/* Left */
 	float CrosshairTextureLeftLocationX = DrawLoc.X - (CrosshairSize * CrosshairSpreadRate);
-	if (Crosshair.Left) DrawTexture(Crosshair.Left, CrosshairTextureLeftLocationX, DrawLoc.Y, CrosshairSize, CrosshairSize, 0.f, 0.f, 1.f, 1.f);
+	if (Crosshair.Left) DrawTexture(Crosshair.Left, CrosshairTextureLeftLocationX, DrawLoc.Y, CrosshairSize, CrosshairSize, 0.f, 0.f, 1.f, 1.f, CrosshairTintColor);
 }

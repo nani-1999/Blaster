@@ -10,6 +10,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "UI/HUD/BlasterHUD.h"
 #include "Camera/CameraComponent.h"
+#include "Interface/CombatInterface.h"
 
 #include "Blaster/Nani/NaniUtility.h"
 #include "DrawDebugHelpers.h"
@@ -46,20 +47,20 @@ void UCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 	ACharacter* CompOwner = GetOwner<ACharacter>();
 
 	if (CompOwner && CompOwner->IsLocallyControlled()) {
-
-		/* generalizing some variables that are used in multiple function bodies */
-		bool bIsInAir = CompOwner->GetCharacterMovement()->IsFalling();
-
 		/* equipped specific */
 		if (EquippedWeapon) {
+
+			/* generalizing some variables that are used in multiple function bodies */
+			bool bIsInAir = CompOwner->GetCharacterMovement()->IsFalling();
+
 			/* Updating HUD Crosshair */
 			UpdateHUDCrosshair(CompOwner, bIsInAir, DeltaTime);
+
 			/* Zoom While Aiming */
 			if (CompOwnerCamera) {
-				NANI_LOG(Warning, "FielfOfView: %f", CompOwnerCamera->FieldOfView);
 				InterpedFOV = FMath::FInterpTo(InterpedFOV, bAiming ? EquippedWeapon->GetAimedFOV() : BaseFOV, DeltaTime, EquippedWeapon->GetFOVInterpSpeed());
 				CompOwnerCamera->SetFieldOfView(InterpedFOV);
-			} 
+			}
 		}
 	}
 }
@@ -71,7 +72,7 @@ void UCombatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 
 	DOREPLIFETIME(UCombatComponent, EquippedWeapon);
 	DOREPLIFETIME(UCombatComponent, bAiming);
-	DOREPLIFETIME(UCombatComponent, bFiring);
+	//DOREPLIFETIME(UCombatComponent, bFiring);
 }
 
 //
@@ -135,6 +136,7 @@ void UCombatComponent::UpdateHUDCrosshair(ACharacter* CompOwner, bool bIsInAir, 
 	ABlasterHUD* BlasterHUD = CompOwnerCtrl->GetHUD<ABlasterHUD>();
 	if (BlasterHUD == nullptr) return;
 
+	/* Crosshair Textures */
 	FCrosshairTextures Crosshair;
 	Crosshair.Center = EquippedWeapon->CrosshairCenter;
 	Crosshair.Top = EquippedWeapon->CrosshairTop;
@@ -142,9 +144,9 @@ void UCombatComponent::UpdateHUDCrosshair(ACharacter* CompOwner, bool bIsInAir, 
 	Crosshair.Bottom = EquippedWeapon->CrosshairBottom;
 	Crosshair.Left = EquippedWeapon->CrosshairLeft;
 
-	/* calculating all possible crosshair spread factors 
+	/* Crosshair Spread Rate
+	 * calculating all possible crosshair spread factors 
 	 * every each factor is of a rate from 0.f to 1.f */
-
 	/* surface velocity factor */
 	FVector2D VelocityRange(0.f, BaseWalkSpeed);
 	FVector2D RateRange(0.f, 1.f);
@@ -156,7 +158,16 @@ void UCombatComponent::UpdateHUDCrosshair(ACharacter* CompOwner, bool bIsInAir, 
 	CrosshairAimFactor = FMath::FInterpTo(CrosshairAimFactor, bAiming ? 0.f : 1.f, DeltaTime, 20.f);
 
 	float SumOfAllFactors = CrosshairSurfaceFactor + CrosshairInAirFactor + CrosshairAimFactor;
-	BlasterHUD->UpdateCrosshair(Crosshair, SumOfAllFactors);
+
+	/* Crosshair Color  */
+	FLinearColor CrosshairColor;
+	FHitResult CursorTraceHit;
+	FVector CursorEndPoint; /* satisfy, just gets the end point if nothing hits */
+	TraceUnderCursor(CursorTraceHit, CursorEndPoint);
+	ICombatInterface* CombatInterface = Cast<ICombatInterface>(CursorTraceHit.GetActor());
+	CrosshairColor = CombatInterface ? FLinearColor::Red : FLinearColor::White;
+
+	BlasterHUD->UpdateCrosshair(Crosshair, SumOfAllFactors, CrosshairColor);
 }
 
 //
@@ -203,7 +214,7 @@ void UCombatComponent::PlayCharacterFireMontage() {
 //
 //============================================ HitScane ============================================
 //
-void UCombatComponent::TraceUnderCursor(FHitResult& OutHitResult, FVector& EndPoint, float TraceLength) {
+void UCombatComponent::TraceUnderCursor(FHitResult& OutHitResult, FVector& CursorEndPosition, float TraceLength, bool bOffset) {
 
 	/* this is just to get a hit target, nothing to do with weapon */
 
@@ -218,17 +229,23 @@ void UCombatComponent::TraceUnderCursor(FHitResult& OutHitResult, FVector& EndPo
 	PC = CompOwner->GetController<APlayerController>();
 	if (PC == nullptr)  return; /* this is a client failed, for simulated proxies, since they don't have controller nor viewport */
 
+	/* Screen To World */
 	FVector CursorWorldPosition;
 	FVector CursorWorldDirection;
 	bool bProjectionSuccessful = UGameplayStatics::DeprojectScreenToWorld(PC, ViewportCenter, CursorWorldPosition, CursorWorldDirection);
 	if (!bProjectionSuccessful) return; /* this is a server failed, for non-owning authoritative characters, since they have controller but no viewport */
+	/* Start Point
+	 * since there are issuses like blocking itself and actors behind, so we need to offset some distance towards */
+	float OffsetDistance = (CursorWorldPosition - CompOwner->GetActorLocation()).Size() + 100.f;  /* here we are offsetting distance from screen to character location + 100.f more */
+	FVector CursorStartPosition = CursorWorldPosition + OffsetDistance * CursorWorldDirection;
+	/* End Point */
+	CursorEndPosition = CursorWorldPosition + TraceLength * CursorWorldDirection;
 
-	FVector CursorEndPosition = CursorWorldPosition + TraceLength * CursorWorldDirection;
+	//DrawDebugLine(GetWorld(), CursorStartPosition, CursorEndPosition, FColor::Red);
+	DrawDebugSphere(GetWorld(), CursorStartPosition, 12.f, 12.f, FColor::Red, false, 10.f);
 
-	UWorld* World = GetWorld();
-	if (World) World->LineTraceSingleByChannel(OutHitResult, CursorWorldPosition, CursorEndPosition, ECollisionChannel::ECC_Visibility);
-
-	EndPoint = CursorEndPosition;
+	/* Line Trace */
+	if (UWorld* World = GetWorld()) World->LineTraceSingleByChannel(OutHitResult, bOffset ? CursorStartPosition : CursorWorldPosition, CursorEndPosition, ECollisionChannel::ECC_Visibility);
 }
 
 //
@@ -237,36 +254,59 @@ void UCombatComponent::TraceUnderCursor(FHitResult& OutHitResult, FVector& EndPo
 void UCombatComponent::SetFiring(bool bIsFiring) {
 	if (EquippedWeapon == nullptr) return;
 
+	/* Local */
 	FHitResult CursorTraceHit;
-	FVector EndPoint;
-	TraceUnderCursor(CursorTraceHit, EndPoint);
+	FVector CursorEndPoint;
+	TraceUnderCursor(CursorTraceHit, CursorEndPoint);
 
-	ServerFiring(bIsFiring, bIsFiring ? CursorTraceHit.bBlockingHit ? CursorTraceHit.ImpactPoint : EndPoint : FVector::ZeroVector);
+	/* only server needs to know about hittarget,
+	 * local client or non owning client does not need to know hittarget or we bother sending hittarget
+	 * this is to reduce bandwidth
+	 * we just locally sends hittarget to server and server send nothing to all clients 
+	 * !note this is not always the case for some type of weapons */
+	ServerFire(CursorTraceHit.bBlockingHit ? CursorTraceHit.ImpactPoint : CursorEndPoint);
 }
 
-void UCombatComponent::ServerFiring_Implementation(bool bIsFiring, const FVector_NetQuantize HitTarget) {
+void UCombatComponent::ServerFire_Implementation(const FVector_NetQuantize HitTarget) {
+	NANI_LOG(Warning, "ServerFire");
+
+	if (EquippedWeapon == nullptr) return;
+	
+	/* firing bullet only on server */
+	EquippedWeapon->FireBullet(HitTarget);
+
+	/* multicast rpc must be called only on server to work 
+	 * invoked on the server itself and all the clients that had a replicated copy of that actor 
+	 * unlike client rpc which only invokes on owning client of that actor */
+	MulticastFire();
+}
+void UCombatComponent::MulticastFire_Implementation() {
+	NANI_LOG(Warning, "MulticastFire");
+
 	if (EquippedWeapon == nullptr) return;
 
-	bFiring = bIsFiring;
-
-	if (bFiring) {
-		PlayCharacterFireMontage();
-
-		EquippedWeapon->Fire(HitTarget);
-	}
+	PlayCharacterFireMontage();
+	EquippedWeapon->PlayFireAnimation();
 }
 
-void UCombatComponent::OnRep_Firing(bool OldFiring) {
-	if (bFiring) {
-		/* play character fire animation */
-		PlayCharacterFireMontage();
-
-		/* play weapon animation which has particle and sound 
-		 * also shell eject
-		 * has auth check which prevents from spawning projectile */
-		EquippedWeapon->Fire(FVector::ZeroVector);
-	}
+//
+//============================================ Hit ============================================
+//
+void UCombatComponent::MulticastHit_Implementation() {
+	//NANI_LOG(Warning, "MulticastHit");
 }
+
+//void UCombatComponent::OnRep_Firing(bool OldFiring) {
+//	if (bFiring) {
+//		/* play character fire animation */
+//		PlayCharacterFireMontage();
+//
+//		/* play weapon animation which has particle and sound 
+//		 * also shell eject
+//		 * has auth check which prevents from spawning projectile */
+//		EquippedWeapon->Fire(FVector::ZeroVector);
+//	}
+//}
 
 //void UCombatComponent::SetFiring(bool bIsFiring) {
 //	if (EquippedWeapon == nullptr) return;
