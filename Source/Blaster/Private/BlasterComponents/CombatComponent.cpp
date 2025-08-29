@@ -241,9 +241,6 @@ void UCombatComponent::TraceUnderCursor(FHitResult& OutHitResult, FVector& Curso
 	/* End Point */
 	CursorEndPosition = CursorWorldPosition + TraceLength * CursorWorldDirection;
 
-	//DrawDebugLine(GetWorld(), CursorStartPosition, CursorEndPosition, FColor::Red);
-	DrawDebugSphere(GetWorld(), CursorStartPosition, 12.f, 12.f, FColor::Red, false, 10.f);
-
 	/* Line Trace */
 	if (UWorld* World = GetWorld()) World->LineTraceSingleByChannel(OutHitResult, bOffset ? CursorStartPosition : CursorWorldPosition, CursorEndPosition, ECollisionChannel::ECC_Visibility);
 }
@@ -268,8 +265,6 @@ void UCombatComponent::SetFiring(bool bIsFiring) {
 }
 
 void UCombatComponent::ServerFire_Implementation(const FVector_NetQuantize HitTarget) {
-	NANI_LOG(Warning, "ServerFire");
-
 	if (EquippedWeapon == nullptr) return;
 	
 	/* firing bullet only on server */
@@ -281,8 +276,6 @@ void UCombatComponent::ServerFire_Implementation(const FVector_NetQuantize HitTa
 	MulticastFire();
 }
 void UCombatComponent::MulticastFire_Implementation() {
-	NANI_LOG(Warning, "MulticastFire");
-
 	if (EquippedWeapon == nullptr) return;
 
 	PlayCharacterFireMontage();
@@ -293,7 +286,7 @@ void UCombatComponent::MulticastFire_Implementation() {
 //============================================ Hit ============================================
 //
 void UCombatComponent::MulticastHit_Implementation() {
-	//NANI_LOG(Warning, "MulticastHit");
+	NANI_LOG(Warning, "MulticastHit");
 }
 
 //void UCombatComponent::OnRep_Firing(bool OldFiring) {

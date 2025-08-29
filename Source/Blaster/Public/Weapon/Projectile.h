@@ -25,8 +25,7 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-	/* Collision 
-	 * public, to prevent two way dependency */
+	/* Collision */
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UBoxComponent> BoxCollision;
 

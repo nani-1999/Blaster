@@ -25,11 +25,11 @@ AWeapon::AWeapon() :
 	WeaponMesh = CreateDefaultSubobject<USkeletalMeshComponent>("WeaponMesh");
 	SetRootComponent(WeaponMesh);
 
-	/*  */
-	WeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	WeaponMesh->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
 	WeaponMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
 	WeaponMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Block);
 	WeaponMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Block);
+	WeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	/* Area Box */
 	AreaBox = CreateDefaultSubobject<UBoxComponent>("AreaBox");

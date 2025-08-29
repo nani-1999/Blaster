@@ -9,6 +9,7 @@
 #include "Particles/ParticleSystem.h"
 #include "Sound/SoundCue.h"
 
+#include "Blaster/Nani/NaniUtility.h"
 
 AProjectile::AProjectile() {
 	PrimaryActorTick.bCanEverTick = false;
@@ -22,9 +23,11 @@ AProjectile::AProjectile() {
 
 	BoxCollision->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
 	BoxCollision->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
-	BoxCollision->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
+	BoxCollision->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Block);
 	BoxCollision->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Block);
-	BoxCollision->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	BoxCollision->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Block);
+	//BoxCollision->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
+	BoxCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 
 	ProjectileComp = CreateDefaultSubobject<UProjectileMovementComponent>("ProjectileComp");
 	ProjectileComp->bRotationFollowsVelocity = true; /* rotation follow direction of velocity, instead of fixed actor's rotation */
@@ -40,7 +43,8 @@ void AProjectile::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	BoxCollision->OnComponentHit.AddDynamic(this, &AProjectile::OnHit);
+	BoxCollision->OnComponentHit.AddDynamic(this, &AProjectile::OnHit); /* ECR_Block */
+	//BoxCollision->OnComponentBeginOverlap.AddDynamic(this, &AProjectile::OnBeginOverlap); /* ECR_Overlap */
 }
 
 void AProjectile::Tick(float DeltaTime)

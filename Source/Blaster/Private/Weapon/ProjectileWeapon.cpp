@@ -29,8 +29,6 @@ void AProjectileWeapon::BeginPlay() {
 //============================================ Fire Bullet ============================================
 //
 void AProjectileWeapon::FireBullet(const FVector& HitTarget) {
-	Super::FireBullet(HitTarget);
-
 	/* happens on Authority */
 	if (!HasAuthority() || ProjectileClass == nullptr) return;
 
@@ -51,7 +49,6 @@ void AProjectileWeapon::FireBullet(const FVector& HitTarget) {
 
 void AProjectileWeapon::OnProjectileHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit) {
 	/* happens on Authority */
-
 	if (ICombatInterface* CombatInterface = Cast<ICombatInterface>(OtherActor)) {
 		UCombatComponent* CombatComp = CombatInterface->GetCombatComponent();
 		if (CombatComp) CombatComp->MulticastHit();
