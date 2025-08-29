@@ -11,6 +11,5 @@ Script
 *.vsconfig
 
 Plugins/MultiplayerSessions/Binaries
-Plugins/MultiplayerSessions/Content
 Plugins/MultiplayerSessions/Intermediate
 Plugins/MultiplayerSessions/Resources
