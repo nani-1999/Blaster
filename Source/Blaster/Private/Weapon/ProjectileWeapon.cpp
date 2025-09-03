@@ -40,17 +40,17 @@ void AProjectileWeapon::FireBullet(const FVector& HitTarget) {
 
 	/* Spawning Weapon Bullet */
 	FActorSpawnParameters SpawnParams;
-	SpawnParams.Owner = this; /* this weapon */
-	SpawnParams.Instigator = GetOwner<APawn>(); /* this weapon's owner */
+	SpawnParams.Owner = this; /* weapon */
+	SpawnParams.Instigator = GetOwner<APawn>(); /* weapon's owner which is APawn */
 
 	AProjectile* Projectile = GetWorld()->SpawnActor<AProjectile>(ProjectileClass, MuzzleSocketTransform, SpawnParams);
-	Projectile->GetBoxComp()->OnComponentHit.AddDynamic(this, &AProjectileWeapon::OnProjectileHit);
+	//Projectile->GetBoxComp()->OnComponentHit.AddDynamic(this, &AProjectileWeapon::OnProjectileHit);
 }
 
-void AProjectileWeapon::OnProjectileHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit) {
-	/* happens on Authority */
-	if (ICombatInterface* CombatInterface = Cast<ICombatInterface>(OtherActor)) {
-		UCombatComponent* CombatComp = CombatInterface->GetCombatComponent();
-		if (CombatComp) CombatComp->MulticastHit();
-	}
-}
+//void AProjectileWeapon::OnProjectileHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit) {
+//	/* happens on Authority */
+//	if (ICombatInterface* CombatInterface = Cast<ICombatInterface>(OtherActor)) {
+//		UCombatComponent* CombatComp = CombatInterface->GetCombatComponent();
+//		if (CombatComp) CombatComp->MulticastHit();
+//	}
+//}

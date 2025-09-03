@@ -12,12 +12,15 @@
 #include "GameFramework/PlayerState.h"
 #include "Components/CapsuleComponent.h"
 #include "BlasterComponents/CombatComponent.h"
+#include "Controller/BlasterPlayerController.h"
+//#include "Animation/AnimMontage.h"
+#include "GameMode/BlasterGameMode.h"
 
 #include "Blaster/Nani/NaniUtility.h"
-#include "Components/StaticMeshComponent.h"
-#include "Components/SkeletalMeshComponent.h"
 
-ABlasterCharacter::ABlasterCharacter()
+ABlasterCharacter::ABlasterCharacter() :
+	MaxHealth{ 100.f },
+	CurrentHealth{ 80.f }
 {
 	PrimaryActorTick.bCanEverTick = false;
 	/* Network */
@@ -26,10 +29,13 @@ ABlasterCharacter::ABlasterCharacter()
 
 	/* Unblocking Camera over Pawn */
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
-	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
 
-	/* Crosshair Color */
-	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
+	/* Character Skeletal Mesh */
+	USkeletalMeshComponent* SKMesh = GetMesh();
+	SKMesh->SetCollisionObjectType(ECollisionChannel::ECC_PhysicsBody);
+	SKMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore); /* including camera */
+	SKMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Block); /* for projectile */
+	SKMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block); /* for crosshair trace line */
 
 	/* Camera Boom */
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>("CameraBoom");
@@ -64,15 +70,6 @@ ABlasterCharacter::ABlasterCharacter()
 	OverheadWidget->SetVisibility(false, true);
 	OverheadWidget->SetDrawAtDesiredSize(true);
 
-	/* Test */
-	TestMesh = CreateDefaultSubobject<UStaticMeshComponent>("TestMesh");
-	TestMesh->SetupAttachment(GetRootComponent());
-	TestMesh->SetUsingAbsoluteRotation(true);
-	TestMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	WeaponMesh = CreateDefaultSubobject<USkeletalMeshComponent>("WeaponMesh");
-	WeaponMesh->SetupAttachment(GetMesh(), FName("RightHandSocket"));
-	WeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-
 	/* Crouch 
 	 * enabling crouch
 	 * also crouch is auto replicated since its handled by CharacterMovement 
@@ -86,18 +83,20 @@ void ABlasterCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	/* must be in beginplay not in object creation, since we need to know network role 
+	if (HasAuthority()) {
+		OnTakeAnyDamage.AddDynamic(this, &ABlasterCharacter::TakenAnyDamage);
+	}
+
+	/* must be in beginplay not in constructor, since we need to know network role 
 	 * combat component needs camera for fov interping while aiming */
-	if (IsLocallyControlled()) Combat->SetCamera(FollowCamera);
+	if (IsLocallyControlled()) {
+		Combat->SetCamera(FollowCamera);
+	}
 }
 
 void ABlasterCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
-	if (Controller) {
-		TestMesh->SetWorldRotation(Controller->GetControlRotation());
-	}
 }
 
 //void ABlasterCharacter::PostInitializeComponents() {
@@ -107,6 +106,17 @@ void ABlasterCharacter::Tick(float DeltaTime)
 //		Combat->Character = this;
 //	}
 //}
+
+//
+//============================================ Replication ============================================
+//
+void ABlasterCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const {
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME_CONDITION(ABlasterCharacter, OverlappingWeapon, COND_OwnerOnly); /* replicates to owning client only */
+	//DOREPLIFETIME_CONDITION(ABlasterCharacter, CurrentHealth, COND_OwnerOnly);
+	DOREPLIFETIME(ABlasterCharacter, CurrentHealth);
+}
 
 //
 //============================================ Weapon ============================================
@@ -139,15 +149,6 @@ FTransform ABlasterCharacter::GetWeaponLeftHandSocketTransform() const {
 }
 
 //
-//============================================ Replication ============================================
-//
-void ABlasterCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const {
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-
-	DOREPLIFETIME_CONDITION(ABlasterCharacter, OverlappingWeapon, COND_OwnerOnly); /* replicates to owning client only */
-}
-
-//
 //============================================ Overhead Widget ============================================
 //
 void ABlasterCharacter::SetupOverheadWidget() {
@@ -163,15 +164,43 @@ void ABlasterCharacter::SetupOverheadWidget() {
 		OverheadWidget->SetVisibility(true, true);
 	}
 }
+
 void ABlasterCharacter::PossessedBy(AController* NewController) {
 	Super::PossessedBy(NewController);
 
+
 	SetupOverheadWidget();
+
+	if (IsLocallyControlled()) {
+		NANI_LOG(Warning, "PossessedBy");
+		/* this is where the character is completely valid and we can access stat values to set on HUD
+		 * using Controller as a mediator to setup and set stats on hud's overlay */
+		if (ABlasterPlayerController* BlasterPC = Cast<ABlasterPlayerController>(NewController)) {
+			/* setting up hud's overlay */
+			BlasterPC->SetupHUDOverlay();
+			/* and initializing its values */
+			BlasterPC->SetHUDOverlayHealth(CurrentHealth, MaxHealth);
+		}
+	}
 }
 void ABlasterCharacter::OnRep_PlayerState() {
 	Super::OnRep_PlayerState();
 
+
 	SetupOverheadWidget();
+
+	if (IsLocallyControlled()) {
+		NANI_LOG(Warning, "OnRep_PlayerState");
+		/* this is where the character is completely valid and we can access stat values to set on HUD
+		 * using Controller as a mediator to setup and set stats on hud's overlay 
+		 * usually we make widget controller to manage widgets */
+		if (ABlasterPlayerController* BlasterPC = GetController<ABlasterPlayerController>()) {
+			/* setting up hud's overlay */
+			BlasterPC->SetupHUDOverlay();
+			/* and initializing its values */
+			BlasterPC->SetHUDOverlayHealth(CurrentHealth, MaxHealth);
+		}
+	}
 }
 
 //
@@ -198,11 +227,19 @@ void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 }
 
 void ABlasterCharacter::TestPressed() {
-	//NANI_LOG(Warning, "TestPressed");
+	NANI_LOG(Warning, "TestPressed");
 	ServerTestPressed();
 }
 void ABlasterCharacter::ServerTestPressed_Implementation() {
-	//NANI_LOG(Warning, "ServerTestPressed");
+	NANI_LOG(Warning, "ServerTestPressed");
+	CurrentHealth += 5.f;
+	if (IsLocallyControlled()) {
+		/* always do hud updates on locally controlled clients only */
+		if (ABlasterPlayerController* BlasterPC = GetController<ABlasterPlayerController>()) {
+			/* using player controller as a mediatory to set health on hud */
+			BlasterPC->SetHUDOverlayHealth(CurrentHealth, MaxHealth);
+		}
+	}
 }
 
 void ABlasterCharacter::MoveForward(const float Value) {
@@ -296,7 +333,87 @@ void ABlasterCharacter::FirePressed() {
 	if (Combat) Combat->SetFiring(true);
 }
 void ABlasterCharacter::FireReleased() {
-	//if (Combat) Combat->SetFiring(false);
+	if (Combat) Combat->SetFiring(false);
+}
+
+//
+//============================================ Play Montage ============================================
+//
+//void ABlasterCharacter::PlayHitReactMontage() {
+//	if (HitReactMontage) {
+//		UAnimInstance* AnimInst = GetMesh()->GetAnimInstance();
+//		if (AnimInst) {
+//			AnimInst->Montage_Play(HitReactMontage);
+//			AnimInst->Montage_JumpToSection(FName("Front"));
+//		}
+//	}
+//}
+void ABlasterCharacter::PlayMontage(UAnimMontage* MontageToPlay, FName SectionName) {
+	if (MontageToPlay) {
+		UAnimInstance* AnimInst = GetMesh()->GetAnimInstance();
+		if (AnimInst) {
+			AnimInst->Montage_Play(MontageToPlay);
+			AnimInst->Montage_JumpToSection(SectionName);
+		}
+	}
+}
+
+
+//
+//============================================ Stats ============================================
+//
+void ABlasterCharacter::OnRep_CurrentHealth(float OldCurrentHealth) {
+	/* HUD
+	 * always do hud updates on locally controlled clients only
+	 * using player controller as a mediatory to set health on hud */
+	if (IsLocallyControlled()) {
+		if (ABlasterPlayerController* BlasterPC = GetController<ABlasterPlayerController>()) {
+			BlasterPC->SetHUDOverlayHealth(CurrentHealth, MaxHealth);
+		}
+	}
+
+	if (CurrentHealth && CurrentHealth < OldCurrentHealth) {
+		/* means health is decreased */
+		PlayMontage(HitReactMontage, FName("Front"));
+	}
+}
+
+//
+//============================================ Damage ============================================
+//
+void ABlasterCharacter::TakenAnyDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType, AController* InstigatedBy, AActor* DamageCauser) {
+	/* Happens on Authority */
+	CurrentHealth = FMath::Clamp(CurrentHealth - Damage, 0.f, MaxHealth);
+
+	/* HUD 
+	 * always do hud updates on locally controlled clients only */
+	if (IsLocallyControlled()) {
+		if (ABlasterPlayerController* BlasterPC = GetController<ABlasterPlayerController>()) {
+			BlasterPC->SetHUDOverlayHealth(CurrentHealth, MaxHealth);
+		}
+	}
+
+	/* since we doing damage, which means health is decreased 
+	 * checking currenthealth, because conflicting with elim montage */
+	if (CurrentHealth) PlayMontage(HitReactMontage, FName("Front"));
+
+	/* checking for Elimination */
+	if (CurrentHealth <= 0.f) {
+		/* getting authoritative game mode, we actaully don't need that, since here we already in authority */
+		ABlasterGameMode* BlasterGM = GetWorld()->GetAuthGameMode<ABlasterGameMode>();
+		if (BlasterGM) {
+			BlasterGM->EliminatePlayer(this, Controller, InstigatedBy);
+			return; /* must return so other montage can't be played */
+		}
+	}
+}
+
+//
+//============================================ Elimination ============================================
+//
+void ABlasterCharacter::MulticastEliminated_Implementation() {
+	bEliminated = true; /* for animation flow */
+	PlayMontage(ElimMontage, FName("Ascend"));
 }
 
 //
@@ -314,3 +431,4 @@ bool ABlasterCharacter::IsWeaponEquipped() {
 bool ABlasterCharacter::IsAiming() {
 	return (Combat && Combat->IsAiming());
 }
+

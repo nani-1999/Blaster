@@ -1,13 +1,13 @@
 // Copyright Na9i Studio.
 
 
-#include "GameMode/LobbyGameModeBase.h"
+#include "GameMode/LobbyGameMode.h"
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/PlayerState.h"
 
 #include "Blaster/Nani/NaniUtility.h"
 
-void ALobbyGameModeBase::PostLogin(APlayerController* NewPlayer) {
+void ALobbyGameMode::PostLogin(APlayerController* NewPlayer) {
 	Super::PostLogin(NewPlayer);
 
 	if (GameState) {
@@ -30,7 +30,7 @@ void ALobbyGameModeBase::PostLogin(APlayerController* NewPlayer) {
 	}
 }
 
-void ALobbyGameModeBase::Logout(AController* Exiting) {
+void ALobbyGameMode::Logout(AController* Exiting) {
 	Super::Logout(Exiting);
 
 	if (GameState) {

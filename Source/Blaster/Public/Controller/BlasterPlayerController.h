@@ -14,4 +14,8 @@ class BLASTER_API ABlasterPlayerController : public APlayerController
 {
 	GENERATED_BODY()
 	
+public:
+	/* HUD's Overlay */
+	void SetupHUDOverlay();
+	void SetHUDOverlayHealth(float CurrentHealth, float MaxHealth);
 };

@@ -12,9 +12,7 @@ class UCameraComponent;
 class AWeapon;
 class UWidgetComponent;
 class UCombatComponent;
-
-class UStaticMeshComponent;
-class USkeletalMeshComponent;
+//class UAnimMontage;
 
 UCLASS()
 class BLASTER_API ABlasterCharacter : public ACharacter, public ICombatInterface
@@ -74,11 +72,6 @@ protected:
 	void ServerAimReleased();
 
 	/* Test */
-	UPROPERTY(VisibleAnywhere)
-	TObjectPtr<UStaticMeshComponent> TestMesh;
-	UPROPERTY(VisibleAnywhere)
-	TObjectPtr<USkeletalMeshComponent> WeaponMesh;
-
 	UFUNCTION()
 	void TestPressed();
 	UFUNCTION(Server, Reliable)
@@ -106,12 +99,42 @@ protected:
 	TObjectPtr<UCombatComponent> Combat;
 
 	/* Combat Interface */
-	virtual UCombatComponent* GetCombatComponent() const override { return Combat; }
+	virtual UCombatComponent* GetCombatComponent() const override { return Combat; } /* override */
+
+	/* Stats */
+	UPROPERTY(VisibleAnywhere)
+	float MaxHealth;
+	UPROPERTY(ReplicatedUsing = OnRep_CurrentHealth)
+	float CurrentHealth;
+	UFUNCTION()
+	void OnRep_CurrentHealth(float OldCurrentHealth);
+
+	/* Damage */
+	UFUNCTION()
+	void TakenAnyDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType, AController* InstigatedBy, AActor* DamageCauser);
+
+	/* Hit */
+	UPROPERTY(EditDefaultsOnly)
+	TObjectPtr<UAnimMontage> HitReactMontage;
+	//void PlayHitReactMontage();
+
+	/* Elimination */
+	bool bEliminated;
+	UPROPERTY(EditDefaultsOnly)
+	TObjectPtr<UAnimMontage> ElimMontage;
+
+	/* Play Montage */
+	void PlayMontage(UAnimMontage* MontageToPlay, FName SectionName);
 
 public:
 	/* Weapon */
 	void SetOverlappingWeapon(AWeapon* WeaponToSet);
 	FTransform GetWeaponLeftHandSocketTransform() const;
+
+	/* Elimination */
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastEliminated();
+	FORCEINLINE bool IsEliminated() const { return bEliminated; }
 
 	/* Getters */
 	bool IsInAir();

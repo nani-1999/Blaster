@@ -63,19 +63,30 @@ protected:
 	void TraceUnderCursor(FHitResult& OutHitResult, FVector& EndPoint, float TraceLength = 5000.f, bool bOffset = true);
 
 	/* Fire */
+	bool bFiring; /* Fire Buttom Pressed */
+	void FireWeapon();
+
 	UFUNCTION(Server, Reliable)
 	void ServerFire(const FVector_NetQuantize HitTarget);
 	UFUNCTION(NetMulticast, Unreliable)
 	void MulticastFire();
 
-	//UPROPERTY(ReplicatedUsing = OnRep_Firing)
-	//bool bFiring;
+	/* Fire Timers */
+	bool bAllowFire;
+	FTimerHandle AllowFireTimerHandle;
+	void AllowFire();
+
 	//UFUNCTION()
 	//void OnRep_Firing(bool OldFiring);
 
 	UPROPERTY(EditDefaultsOnly)
 	TObjectPtr<UAnimMontage> FireMontage;
 	void PlayCharacterFireMontage();
+
+	/* Hit */
+	//UPROPERTY(EditDefaultsOnly)
+	//TObjectPtr<UAnimMontage> HitReactMontage;
+	//void PlayCharacterHitReactMontage();
 
 public:
 	/* Weapon */
@@ -91,12 +102,12 @@ public:
 	void SetAiming(bool bIsAiming);
 
 	/* Fire */
-	void SetFiring(bool bIsFiring);
+	void SetFiring(bool bPressed);
 
 	/* Setters */
 	FORCEINLINE void SetCamera(UCameraComponent* Camera) { CompOwnerCamera = Camera; }
 
-	/* HIt */
-	UFUNCTION(NetMulticast, Unreliable)
-	void MulticastHit();
+	/* Hit */
+	//UFUNCTION(NetMulticast, Unreliable)
+	//void MulticastHit();
 };

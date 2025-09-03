@@ -19,7 +19,8 @@ UCombatComponent::UCombatComponent() :
 	BaseWalkSpeed{ 600.f },
 	AimWalkSpeed{ 300.f },
 	BaseFOV{ 90.f },
-	InterpedFOV{ BaseFOV }
+	InterpedFOV{ BaseFOV },
+	bAllowFire{ true }
 {
 	PrimaryComponentTick.bCanEverTick = true;
 }
@@ -104,7 +105,7 @@ void UCombatComponent::EquipWeapon(AWeapon* WeaponToEquip) {
 			
 			if (bAttachmentSuccessful) {
 				EquippedWeapon = WeaponToEquip;
-				SetOrientRotationToMovement(EquippedWeapon ? false : true);
+				SetOrientRotationToMovement(!EquippedWeapon/* ? false : true*/);
 				EquippedWeapon->SetOwner(CompOwner);
 			}
 			//else {
@@ -248,8 +249,17 @@ void UCombatComponent::TraceUnderCursor(FHitResult& OutHitResult, FVector& Curso
 //
 //============================================ Fire ============================================
 //
-void UCombatComponent::SetFiring(bool bIsFiring) {
+void UCombatComponent::SetFiring(bool bPressed) {
 	if (EquippedWeapon == nullptr) return;
+
+	bFiring = bPressed;
+
+	if (bFiring && bAllowFire) {
+		FireWeapon();
+	}
+}
+void UCombatComponent::FireWeapon() {
+	bAllowFire = false;
 
 	/* Local */
 	FHitResult CursorTraceHit;
@@ -259,10 +269,21 @@ void UCombatComponent::SetFiring(bool bIsFiring) {
 	/* only server needs to know about hittarget,
 	 * local client or non owning client does not need to know hittarget or we bother sending hittarget
 	 * this is to reduce bandwidth
-	 * we just locally sends hittarget to server and server send nothing to all clients 
+	 * we just locally sends hittarget to server and server send nothing to all clients
 	 * !note this is not always the case for some type of weapons */
 	ServerFire(CursorTraceHit.bBlockingHit ? CursorTraceHit.ImpactPoint : CursorEndPoint);
+
+	/* Timer 
+	 * Doing Locally */
+	GetWorld()->GetTimerManager().SetTimer(AllowFireTimerHandle, this, &UCombatComponent::AllowFire, EquippedWeapon->GetFireRate());
 }
+void UCombatComponent::AllowFire() {
+	bAllowFire = true;
+
+	/* checking to see if we still pressed fire button and also is weapon automatic */
+	if (bFiring && EquippedWeapon->IsAutomatic()) FireWeapon();
+}
+
 
 void UCombatComponent::ServerFire_Implementation(const FVector_NetQuantize HitTarget) {
 	if (EquippedWeapon == nullptr) return;
@@ -270,9 +291,9 @@ void UCombatComponent::ServerFire_Implementation(const FVector_NetQuantize HitTa
 	/* firing bullet only on server */
 	EquippedWeapon->FireBullet(HitTarget);
 
-	/* multicast rpc must be called only on server to work 
+	/* multicast rpc must be called only by server to work 
 	 * invoked on the server itself and all the clients that had a replicated copy of that actor 
-	 * unlike client rpc which only invokes on owning client of that actor */
+	 * unlike client rpc which only invokes on owning client of that actor, if the actor doesn't have a owning client (owner) it doesn't invoke at all */
 	MulticastFire();
 }
 void UCombatComponent::MulticastFire_Implementation() {
@@ -285,9 +306,22 @@ void UCombatComponent::MulticastFire_Implementation() {
 //
 //============================================ Hit ============================================
 //
-void UCombatComponent::MulticastHit_Implementation() {
-	NANI_LOG(Warning, "MulticastHit");
-}
+//void UCombatComponent::MulticastHit_Implementation() {
+//	/* playing hit react montage */
+//	PlayCharacterHitReactMontage();
+//}
+//void UCombatComponent::PlayCharacterHitReactMontage() {
+//	if (HitReactMontage) {
+//		ACharacter* CompOwner = GetOwner<ACharacter>();
+//		if (CompOwner) {
+//			UAnimInstance* AnimInst = CompOwner->GetMesh()->GetAnimInstance();
+//			if (AnimInst) {
+//				AnimInst->Montage_Play(HitReactMontage);
+//				AnimInst->Montage_JumpToSection(FName("Front"));
+//			}
+//		}
+//	}
+//}
 
 //void UCombatComponent::OnRep_Firing(bool OldFiring) {
 //	if (bFiring) {

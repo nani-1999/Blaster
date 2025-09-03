@@ -2,6 +2,14 @@
 
 
 #include "UI/HUD/BlasterHUD.h"
+#include "UI/Widget/BlasterOverlay.h"
+
+#include "Blaster/Nani/NaniUtility.h"
+
+void ABlasterHUD::BeginPlay() {
+	Super::BeginPlay();
+
+}
 
 void ABlasterHUD::DrawHUD() {
 	Super::DrawHUD();
@@ -34,4 +42,20 @@ void ABlasterHUD::DrawCrosshair(FVector2D DrawLoc) {
 	/* Left */
 	float CrosshairTextureLeftLocationX = DrawLoc.X - (CrosshairSize * CrosshairSpreadRate);
 	if (Crosshair.Left) DrawTexture(Crosshair.Left, CrosshairTextureLeftLocationX, DrawLoc.Y, CrosshairSize, CrosshairSize, 0.f, 0.f, 1.f, 1.f, CrosshairTintColor);
+}
+
+//
+//============================================ Overlay ============================================
+//
+void ABlasterHUD::SetupOverlay(APlayerController* Controller) {
+	if (OverlayClass && Controller) {
+		Overlay = CreateWidget<UBlasterOverlay>(Controller, OverlayClass, FName("BlasterOverlay"));
+		if (Overlay) {
+			Overlay->AddToViewport();
+			Overlay->SetVisibility(ESlateVisibility::HitTestInvisible);
+		}
+	}
+}
+void ABlasterHUD::SetOverlayHealth(float CurrentHealth, float MaxHealth) {
+	if (Overlay) Overlay->SetHealth(CurrentHealth, MaxHealth);
 }

@@ -71,4 +71,8 @@ public:
 	/* FABRIK */
 	UPROPERTY(BlueprintReadOnly)
 	FTransform LeftHandBoneTransform;
+
+	/* Elimination */
+	UPROPERTY(BlueprintReadOnly)
+	bool bEliminated;
 };

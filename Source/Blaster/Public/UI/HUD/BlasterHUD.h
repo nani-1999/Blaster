@@ -6,6 +6,8 @@
 #include "GameFramework/HUD.h"
 #include "BlasterHUD.generated.h"
 
+class UBlasterOverlay;
+
 USTRUCT()
 struct FCrosshairTextures {
 
@@ -29,6 +31,8 @@ class BLASTER_API ABlasterHUD : public AHUD
 	GENERATED_BODY()
 	
 protected:
+	virtual void BeginPlay() override;
+
 	/* Crosshair */
 	FCrosshairTextures Crosshair;
 
@@ -40,6 +44,12 @@ protected:
 
 	void DrawCrosshair(FVector2D DrawLoc);
 
+	/* Overlay */
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<UBlasterOverlay> OverlayClass;
+	UPROPERTY()
+	TObjectPtr<UBlasterOverlay> Overlay;
+
 public:
 	virtual void DrawHUD() override;
 
@@ -49,4 +59,8 @@ public:
 		CrosshairSpreadRate = NewRate; 
 		CrosshairTintColor = TintColor; 
 	}
+
+	/* Overlay */
+	void SetupOverlay(APlayerController* Controller);
+	void SetOverlayHealth(float CurrentHealth, float MaxHealth);
 };

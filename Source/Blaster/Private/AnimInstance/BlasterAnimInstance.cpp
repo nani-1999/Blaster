@@ -116,14 +116,13 @@ void UBlasterAnimInstance::NativeUpdateAnimation(float DeltaSeconds) {
 		 * we need to convert that WorldSpace into a BoneSpace
 		 * in this case, relative to one of the CharacterMesh's Bone, eg: hand_r */
 		FTransform LeftHandSocketTransform = bIsWeaponEquipped ? BlasterCharacter->GetWeaponLeftHandSocketTransform() : FTransform();
-
 		FVector LeftHandBoneLoc;
 		FRotator LeftHandBoneRot;
 		BlasterCharacter->GetMesh()->TransformToBoneSpace(FName("hand_r"), LeftHandSocketTransform.GetLocation(), FRotator(0.f), LeftHandBoneLoc, LeftHandBoneRot);
-
 		LeftHandBoneTransform.SetLocation(LeftHandBoneLoc);
 		LeftHandBoneTransform.SetRotation(FQuat(LeftHandBoneRot));
 
-		//NANI_LOG(Warning, "Stopped: %f | Turned: %f | Root: %f", StoppedSurfaceAimAingle, TurnedSurfaceAimAngle, RootYaw);
+		/* Elimination */
+		bEliminated = BlasterCharacter->IsEliminated();
 	}
 }

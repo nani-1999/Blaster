@@ -16,7 +16,9 @@
 
 AWeapon::AWeapon() :
 	AimedFOV{ 30.f },
-	FOVInterpSpeed{ 20.f }
+	FOVInterpSpeed{ 20.f },
+	FireRate{ 0.5f },
+	bIsAutomatic{ false }
 {
 	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = true;

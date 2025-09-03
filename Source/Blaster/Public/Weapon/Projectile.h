@@ -47,9 +47,8 @@ protected:
 	
 	/* Events */
 	UFUNCTION()
-	void OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
+	virtual void OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 
-public:
-	/* Getters */
-	FORCEINLINE UBoxComponent* GetBoxComp() const { return BoxCollision; }
+	/* Destroyed */
+	virtual void Destroyed() override;
 };

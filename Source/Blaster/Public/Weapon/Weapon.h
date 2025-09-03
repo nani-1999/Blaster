@@ -74,6 +74,12 @@ protected:
 	UPROPERTY(EditDefaultsOnly)
 	float FOVInterpSpeed;
 
+	/* Fire */
+	UPROPERTY(EditDefaultsOnly)
+	float FireRate;
+	UPROPERTY(EditDefaultsOnly)
+	bool bIsAutomatic;
+
 public:
 	/* Pickup Widget */
 	void ShowPickupWidget(bool bShow);
@@ -105,4 +111,8 @@ public:
 	/* Field Of View */
 	FORCEINLINE float GetAimedFOV() const { return AimedFOV; }
 	FORCEINLINE float GetFOVInterpSpeed() const { return FOVInterpSpeed; }
+
+	/* Fire */
+	FORCEINLINE float GetFireRate() const { return FireRate; }
+	FORCEINLINE bool IsAutomatic() const { return bIsAutomatic; }
 };
