@@ -15,17 +15,24 @@
 #include "Controller/BlasterPlayerController.h"
 //#include "Animation/AnimMontage.h"
 #include "GameMode/BlasterGameMode.h"
+#include "Components/TimelineComponent.h"
 
 #include "Blaster/Nani/NaniUtility.h"
 
 ABlasterCharacter::ABlasterCharacter() :
 	MaxHealth{ 100.f },
-	CurrentHealth{ 80.f }
+	CurrentHealth{ 80.f },
+	bEliminated{ false },
+	ElimAnimTime{ 3.f }
 {
 	PrimaryActorTick.bCanEverTick = false;
 	/* Network */
 	NetUpdateFrequency = 66.f;
 	MinNetUpdateFrequency = 33.f;
+
+	/* Spawning 
+	 * colliding something when trying to spawn */
+	SpawnCollisionHandlingMethod = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
 	/* Unblocking Camera over Pawn */
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
@@ -77,6 +84,9 @@ ABlasterCharacter::ABlasterCharacter() :
 	GetCharacterMovement()->NavAgentProps.bCanCrouch = true;
 	GetCharacterMovement()->SetCrouchedHalfHeight(60.f); /* accessing CrouchedHalfHeight directly is depricated, using set instead */
 	GetCharacterMovement()->MaxWalkSpeedCrouched = 200.f;
+
+	/* Timeline */
+	Transition = CreateDefaultSubobject<UTimelineComponent>("Transition");
 }
 
 void ABlasterCharacter::BeginPlay()
@@ -227,19 +237,26 @@ void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 }
 
 void ABlasterCharacter::TestPressed() {
+
 	NANI_LOG(Warning, "TestPressed");
 	ServerTestPressed();
 }
 void ABlasterCharacter::ServerTestPressed_Implementation() {
+
 	NANI_LOG(Warning, "ServerTestPressed");
-	CurrentHealth += 5.f;
-	if (IsLocallyControlled()) {
-		/* always do hud updates on locally controlled clients only */
-		if (ABlasterPlayerController* BlasterPC = GetController<ABlasterPlayerController>()) {
-			/* using player controller as a mediatory to set health on hud */
-			BlasterPC->SetHUDOverlayHealth(CurrentHealth, MaxHealth);
-		}
-	}
+	//CurrentHealth += 5.f;
+	//if (IsLocallyControlled()) {
+	//	/* always do hud updates on locally controlled clients only */
+	//	if (ABlasterPlayerController* BlasterPC = GetController<ABlasterPlayerController>()) {
+	//		/* using player controller as a mediatory to set health on hud */
+	//		BlasterPC->SetHUDOverlayHealth(CurrentHealth, MaxHealth);
+	//	}
+	//}
+	MulticastTestPressed();
+}
+void ABlasterCharacter::MulticastTestPressed_Implementation() {
+
+	NANI_LOG(Warning, "MulticastTestPressed");
 }
 
 void ABlasterCharacter::MoveForward(const float Value) {
@@ -373,7 +390,8 @@ void ABlasterCharacter::OnRep_CurrentHealth(float OldCurrentHealth) {
 	}
 
 	if (CurrentHealth && CurrentHealth < OldCurrentHealth) {
-		/* means health is decreased */
+		/* means health is decreased 
+	     * checking currenthealth to prevent elimination montage confliction */
 		PlayMontage(HitReactMontage, FName("Front"));
 	}
 }
@@ -382,6 +400,8 @@ void ABlasterCharacter::OnRep_CurrentHealth(float OldCurrentHealth) {
 //============================================ Damage ============================================
 //
 void ABlasterCharacter::TakenAnyDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType, AController* InstigatedBy, AActor* DamageCauser) {
+	NANI_LOG(Warning, "%s Dealt %f Damage on %s using %s", *InstigatedBy->GetName(), Damage, *DamagedActor->GetName(), *DamageCauser->GetName());
+
 	/* Happens on Authority */
 	CurrentHealth = FMath::Clamp(CurrentHealth - Damage, 0.f, MaxHealth);
 
@@ -393,27 +413,85 @@ void ABlasterCharacter::TakenAnyDamage(AActor* DamagedActor, float Damage, const
 		}
 	}
 
-	/* since we doing damage, which means health is decreased 
-	 * checking currenthealth, because conflicting with elim montage */
-	if (CurrentHealth) PlayMontage(HitReactMontage, FName("Front"));
-
 	/* checking for Elimination */
 	if (CurrentHealth <= 0.f) {
-		/* getting authoritative game mode, we actaully don't need that, since here we already in authority */
-		ABlasterGameMode* BlasterGM = GetWorld()->GetAuthGameMode<ABlasterGameMode>();
-		if (BlasterGM) {
+		if (ABlasterGameMode* BlasterGM = GetWorld()->GetAuthGameMode<ABlasterGameMode>()) {
 			BlasterGM->EliminatePlayer(this, Controller, InstigatedBy);
-			return; /* must return so other montage can't be played */
 		}
+	}
+	else {
+		/* means health is above 0.f and we play hit react montage */
+		PlayMontage(HitReactMontage, FName("Front"));
 	}
 }
 
 //
 //============================================ Elimination ============================================
 //
+void ABlasterCharacter::Eliminated() {
+	if (Combat) Combat->UnEquipWeapon();
+
+	/* Happens on Authority */
+	MulticastEliminated();
+
+	/* this is purely for elimination animation montage to complete */
+	GetWorldTimerManager().SetTimer(ElimAnimTimerHandle, this, &ABlasterCharacter::ElimAnimFinished, ElimAnimTime); /* change this to respawn convention */
+}
 void ABlasterCharacter::MulticastEliminated_Implementation() {
-	bEliminated = true; /* for animation flow */
+	bEliminated = true; /* for animation flow blocking */
+
+	/* disabling all collisions 
+	 * must be done on all proxies */
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	/* disabling this character's controller-privileges 
+	 * only works on locally owning clients
+	 * calling this on server only and expecting on client to work, is doesn't work 
+	 * since this is multicast, we don't care */
+	DisableInput(GetController<APlayerController>());
+
+	/* stoping any movement 
+	 * only works on server
+	 * since this is multicast, we don't care */
+	GetCharacterMovement()->DisableMovement();
+	GetCharacterMovement()->StopMovementImmediately(); /* extra */
+
+	/* playing eliminated animation */
 	PlayMontage(ElimMontage, FName("Ascend"));
+
+	/* dissolving our character's mesh */
+	DissolveMaterial();
+}
+
+void ABlasterCharacter::ElimAnimFinished() {
+	/* Happens on Authority */
+	if (ABlasterGameMode* BlasterGM = GetWorld()->GetAuthGameMode<ABlasterGameMode>()) {
+		/* asking game mode for respawn after elimination animation timer is finished */
+		BlasterGM->RequestRespawn(this, Controller);
+	}
+}
+
+//
+//============================================ Dissolve Material ============================================
+//
+void ABlasterCharacter::DissolveMaterial() {
+	/* we need to make a dynamic material 
+	 * and set it to our character's mesh */
+	DissolveMaterialInstanceDynamic = UMaterialInstanceDynamic::Create(DissolveMaterialInstance, this);
+	GetMesh()->SetMaterial(0, DissolveMaterialInstanceDynamic);
+
+	/* using timeline component to get values over time
+	 * to update our dissolve dynamic material */
+	FOnTimelineFloat DissolveDelegate;
+	DissolveDelegate.BindDynamic(this, &ABlasterCharacter::UpdateDissolveMaterial);
+	Transition->AddInterpFloat(DissolveCurve, DissolveDelegate);
+	Transition->Play();
+}
+void ABlasterCharacter::UpdateDissolveMaterial(float Value) {
+	if (DissolveMaterialInstanceDynamic) {
+		DissolveMaterialInstanceDynamic->SetScalarParameterValue(FName("Dissolve"), Value);
+	}
 }
 
 //

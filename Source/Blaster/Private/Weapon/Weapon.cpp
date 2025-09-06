@@ -54,9 +54,6 @@ void AWeapon::BeginPlay()
 {
 	Super::BeginPlay();
 
-	//WeaponMesh->SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
-	//WeaponMesh->SetSimulatePhysics(true);
-	
 	/* Authority */
 	if (HasAuthority()) {
 		AreaBox->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
@@ -119,6 +116,7 @@ void AWeapon::UpdateWeaponState() {
 			break;
 		case EWeaponState::EWS_Dropped:
 			AreaBox->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+			//PickupWidget->SetVisibility(true, true);
 			break;
 		case EWeaponState::EWS_Initial:
 			break;

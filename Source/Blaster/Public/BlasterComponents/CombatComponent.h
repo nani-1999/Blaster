@@ -92,6 +92,7 @@ public:
 	/* Weapon */
 	void EquipWeapon(AWeapon* WeaponToEquip);
 	FTransform GetWeaponLeftHandSocketTransform() const;
+	void UnEquipWeapon();
 
 	/* Getters */
 	FORCEINLINE AWeapon* GetEquippedWeapon() const { return EquippedWeapon; }

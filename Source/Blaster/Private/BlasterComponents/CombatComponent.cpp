@@ -92,7 +92,13 @@ void UCombatComponent::SetOrientRotationToMovement(bool bOrient) {
 //============================================ Weapon ============================================
 //
 void UCombatComponent::EquipWeapon(AWeapon* WeaponToEquip) {
+	/* Happens on Authority */
 	if (WeaponToEquip == nullptr) return;
+
+	/* some alternate way maybe */
+	//EquippedWeapon = WeaponToEquip->SetWeaponState(EWeaponState::EWS_Equipped, USeneComponent*);
+
+	if (EquippedWeapon) UnEquipWeapon(); // custom
 
 	ACharacter* CompOwner = GetOwner<ACharacter>();
 	if (CompOwner) {
@@ -116,6 +122,26 @@ void UCombatComponent::EquipWeapon(AWeapon* WeaponToEquip) {
 }
 void UCombatComponent::OnRep_EquippedWeapon(AWeapon* OldEquippedWeapon) {
 	SetOrientRotationToMovement(EquippedWeapon ? false : true);
+}
+void UCombatComponent::UnEquipWeapon() {
+	if (EquippedWeapon == nullptr) return;
+
+	/* detaching weapon */
+	EquippedWeapon->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+	
+	/* setting detached weapon's location to our forward */
+	//ACharacter* CompOwner = GetOwner<ACharacter>();
+	//if (CompOwner) {
+	//	FVector ForwardLocation = CompOwner->GetActorLocation() + CompOwner->GetActorForwardVector() * 200.f;
+	//	EquippedWeapon->SetActorLocation(ForwardLocation);
+	//}
+
+	/* must also set weapon's owner to null */
+	EquippedWeapon->SetOwner(nullptr);
+
+	/* setting weapon state and nulling out our weapon ptr */
+	EquippedWeapon->SetWeaponState(EWeaponState::EWS_Dropped);
+	EquippedWeapon = nullptr;
 }
 
 //

@@ -15,9 +15,6 @@ AProjectile::AProjectile() {
 	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = true;
 
-	/* maybe we can not replicate, and do multicast hittarget in projectileweapon
-	 * this will make the bullet travel(projectiles) to the point in client and server without actually replicating the bullet */
-
 	BoxCollision = CreateDefaultSubobject<UBoxComponent>("BoxCollision");
 	SetRootComponent(BoxCollision);
 

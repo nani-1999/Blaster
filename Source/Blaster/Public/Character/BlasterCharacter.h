@@ -12,7 +12,7 @@ class UCameraComponent;
 class AWeapon;
 class UWidgetComponent;
 class UCombatComponent;
-//class UAnimMontage;
+//class UMaterialInstance;
 
 UCLASS()
 class BLASTER_API ABlasterCharacter : public ACharacter, public ICombatInterface
@@ -76,6 +76,8 @@ protected:
 	void TestPressed();
 	UFUNCTION(Server, Reliable)
 	void ServerTestPressed();
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastTestPressed();
 
 	/* Camera */
 	UPROPERTY(VisibleAnywhere)
@@ -101,6 +103,9 @@ protected:
 	/* Combat Interface */
 	virtual UCombatComponent* GetCombatComponent() const override { return Combat; } /* override */
 
+	/* Play Montage */
+	void PlayMontage(UAnimMontage* MontageToPlay, FName SectionName);
+
 	/* Stats */
 	UPROPERTY(VisibleAnywhere)
 	float MaxHealth;
@@ -120,11 +125,29 @@ protected:
 
 	/* Elimination */
 	bool bEliminated;
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastEliminated();
 	UPROPERTY(EditDefaultsOnly)
 	TObjectPtr<UAnimMontage> ElimMontage;
+	/* Timer */
+	float ElimAnimTime;
+	FTimerHandle ElimAnimTimerHandle;
+	void ElimAnimFinished();
 
-	/* Play Montage */
-	void PlayMontage(UAnimMontage* MontageToPlay, FName SectionName);
+	/* Timeline */
+	UPROPERTY(VisibleAnywhere)
+	class UTimelineComponent* Transition;
+
+	/* Dissolve Material */
+	void DissolveMaterial();
+	UPROPERTY(EditDefaultsOnly)
+	TObjectPtr<UMaterialInstance> DissolveMaterialInstance;
+	UPROPERTY(VisibleAnywhere)
+	TObjectPtr<UMaterialInstanceDynamic> DissolveMaterialInstanceDynamic;
+	UPROPERTY(EditDefaultsOnly)
+	class UCurveFloat* DissolveCurve;
+	UFUNCTION()
+	void UpdateDissolveMaterial(float Value);
 
 public:
 	/* Weapon */
@@ -132,8 +155,7 @@ public:
 	FTransform GetWeaponLeftHandSocketTransform() const;
 
 	/* Elimination */
-	UFUNCTION(NetMulticast, Reliable)
-	void MulticastEliminated();
+	void Eliminated();
 	FORCEINLINE bool IsEliminated() const { return bEliminated; }
 
 	/* Getters */
