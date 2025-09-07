@@ -12,6 +12,9 @@ class UCameraComponent;
 class AWeapon;
 class UWidgetComponent;
 class UCombatComponent;
+//class UParticleSystemComponent;
+class UParticleSystem;
+class USoundCue;
 //class UMaterialInstance;
 
 UCLASS()
@@ -129,21 +132,28 @@ protected:
 	void MulticastEliminated();
 	UPROPERTY(EditDefaultsOnly)
 	TObjectPtr<UAnimMontage> ElimMontage;
-	/* Timer */
+	/* Respawn Timer */
 	float ElimAnimTime;
 	FTimerHandle ElimAnimTimerHandle;
 	void ElimAnimFinished();
 
-	/* Timeline */
-	UPROPERTY(VisibleAnywhere)
-	class UTimelineComponent* Transition;
+	/* Elimination Particle & Sounds */
+	//UPROPERTY(VisibleAnywhere)
+	//TObjectPtr<UParticleSystemComponent> ElimParticleComp;
+	UPROPERTY(EditDefaultsOnly)
+	TObjectPtr<UParticleSystem> ElimParticle;
+	UPROPERTY(EditDefaultsOnly)
+	TObjectPtr<USoundCue> ElimSound;
 
-	/* Dissolve Material */
+	/* Elimination Dissolve Material */
 	void DissolveMaterial();
 	UPROPERTY(EditDefaultsOnly)
 	TObjectPtr<UMaterialInstance> DissolveMaterialInstance;
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UMaterialInstanceDynamic> DissolveMaterialInstanceDynamic;
+	/* Timeline */
+	UPROPERTY(VisibleAnywhere)
+	class UTimelineComponent* Transition;
 	UPROPERTY(EditDefaultsOnly)
 	class UCurveFloat* DissolveCurve;
 	UFUNCTION()

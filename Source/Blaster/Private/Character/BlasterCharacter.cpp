@@ -16,6 +16,10 @@
 //#include "Animation/AnimMontage.h"
 #include "GameMode/BlasterGameMode.h"
 #include "Components/TimelineComponent.h"
+#include "Kismet/GameplayStatics.h"
+//#include "Particles/ParticleSystemComponent.h"
+#include "Particles/ParticleSystem.h"
+#include "Sound/SoundCue.h"
 
 #include "Blaster/Nani/NaniUtility.h"
 
@@ -23,7 +27,7 @@ ABlasterCharacter::ABlasterCharacter() :
 	MaxHealth{ 100.f },
 	CurrentHealth{ 80.f },
 	bEliminated{ false },
-	ElimAnimTime{ 3.f }
+	ElimAnimTime{ 5.f }
 {
 	PrimaryActorTick.bCanEverTick = false;
 	/* Network */
@@ -74,7 +78,7 @@ ABlasterCharacter::ABlasterCharacter() :
 	OverheadWidget = CreateDefaultSubobject<UWidgetComponent>("OverheadWidget");
 	OverheadWidget->SetupAttachment(GetRootComponent());
 	OverheadWidget->SetWidgetSpace(EWidgetSpace::Screen);
-	OverheadWidget->SetVisibility(false, true);
+	OverheadWidget->SetVisibility(false);
 	OverheadWidget->SetDrawAtDesiredSize(true);
 
 	/* Crouch 
@@ -87,11 +91,18 @@ ABlasterCharacter::ABlasterCharacter() :
 
 	/* Timeline */
 	Transition = CreateDefaultSubobject<UTimelineComponent>("Transition");
+
+	/* Elim Bot */
+	//ElimParticleComp = CreateDefaultSubobject<UParticleSystemComponent>("ElimParticleComp");
+	//ElimParticleComp->SetupAttachment(GetRootComponent());
+	//ElimParticleComp->SetAutoActivate(false);
 }
 
 void ABlasterCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+	//SetupOverheadWidget();
 
 	if (HasAuthority()) {
 		OnTakeAnyDamage.AddDynamic(this, &ABlasterCharacter::TakenAnyDamage);
@@ -162,7 +173,10 @@ FTransform ABlasterCharacter::GetWeaponLeftHandSocketTransform() const {
 //============================================ Overhead Widget ============================================
 //
 void ABlasterCharacter::SetupOverheadWidget() {
-	/* Overhead Widget */
+	/* some times in early stages widgetcomponent's widget is not intialized(beginplay called)
+	 * we have to initialize if not, no worries because it has checks if widget is already created or not 
+	 * peek for more, has weird call of InitWidget() on its BeginPlay() */
+	OverheadWidget->InitWidget();
 	UTextWidget* TextWidget = Cast<UTextWidget>(OverheadWidget->GetUserWidgetObject());
 	if (TextWidget) {
 		FString NetRoleStr = GetNetRoleStr<FString>(GetLocalRole());
@@ -171,18 +185,18 @@ void ABlasterCharacter::SetupOverheadWidget() {
 
 		TextWidget->SetText(FText::FromString(TextStr), 20);
 		TextWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
-		OverheadWidget->SetVisibility(true, true);
+		OverheadWidget->SetVisibility(true);
 	}
 }
 
 void ABlasterCharacter::PossessedBy(AController* NewController) {
 	Super::PossessedBy(NewController);
 
+	NANI_LOG(Warning, "PossessedBy");
 
 	SetupOverheadWidget();
 
 	if (IsLocallyControlled()) {
-		NANI_LOG(Warning, "PossessedBy");
 		/* this is where the character is completely valid and we can access stat values to set on HUD
 		 * using Controller as a mediator to setup and set stats on hud's overlay */
 		if (ABlasterPlayerController* BlasterPC = Cast<ABlasterPlayerController>(NewController)) {
@@ -196,11 +210,11 @@ void ABlasterCharacter::PossessedBy(AController* NewController) {
 void ABlasterCharacter::OnRep_PlayerState() {
 	Super::OnRep_PlayerState();
 
+	NANI_LOG(Warning, "OnRep_PlayerState");
 
 	SetupOverheadWidget();
 
 	if (IsLocallyControlled()) {
-		NANI_LOG(Warning, "OnRep_PlayerState");
 		/* this is where the character is completely valid and we can access stat values to set on HUD
 		 * using Controller as a mediator to setup and set stats on hud's overlay 
 		 * usually we make widget controller to manage widgets */
@@ -237,6 +251,7 @@ void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 }
 
 void ABlasterCharacter::TestPressed() {
+	SetupOverheadWidget();
 
 	NANI_LOG(Warning, "TestPressed");
 	ServerTestPressed();
@@ -455,7 +470,21 @@ void ABlasterCharacter::MulticastEliminated_Implementation() {
 	 * only works on server
 	 * since this is multicast, we don't care */
 	GetCharacterMovement()->DisableMovement();
-	GetCharacterMovement()->StopMovementImmediately(); /* extra */
+	GetCharacterMovement()->StopMovementImmediately(); /* for any slide, deceleration or free movements happening */
+
+	/* hiding overheadwidget */
+	OverheadWidget->SetVisibility(false);
+
+	/* elimination bot 
+	 * must do this after removing all movement and input privilages */
+	FVector SpawnPoint = GetActorLocation();
+	SpawnPoint.Z += 200.f; /* offsetting 200 units up */
+	if (ElimParticle) {
+		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ElimParticle, SpawnPoint, GetActorRotation());
+		//ElimParticleComp = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ElimParticle, SpawnPoint, GetActorRotation());
+		//ElimParticleComp->ActivateSystem();
+	}
+	if (ElimSound) UGameplayStatics::PlaySoundAtLocation(this, ElimSound, SpawnPoint);
 
 	/* playing eliminated animation */
 	PlayMontage(ElimMontage, FName("Ascend"));
@@ -476,12 +505,14 @@ void ABlasterCharacter::ElimAnimFinished() {
 //============================================ Dissolve Material ============================================
 //
 void ABlasterCharacter::DissolveMaterial() {
-	/* we need to make a dynamic material 
-	 * and set it to our character's mesh */
-	DissolveMaterialInstanceDynamic = UMaterialInstanceDynamic::Create(DissolveMaterialInstance, this);
-	GetMesh()->SetMaterial(0, DissolveMaterialInstanceDynamic);
+	/* dynamic material instance
+	 * creating dynamic material instance and setting it on character's mesh */
+	DissolveMaterialInstanceDynamic = GetMesh()->CreateAndSetMaterialInstanceDynamicFromMaterial(0, DissolveMaterialInstance);
+	//DissolveMaterialInstanceDynamic = UMaterialInstanceDynamic::Create(DissolveMaterialInstance, this);
+	//GetMesh()->SetMaterial(0, DissolveMaterialInstanceDynamic);
 
-	/* using timeline component to get values over time
+	/* timeline component
+	 * using timeline component to get values over time
 	 * to update our dissolve dynamic material */
 	FOnTimelineFloat DissolveDelegate;
 	DissolveDelegate.BindDynamic(this, &ABlasterCharacter::UpdateDissolveMaterial);

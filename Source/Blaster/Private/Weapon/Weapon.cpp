@@ -46,7 +46,7 @@ AWeapon::AWeapon() :
 	PickupWidget = CreateDefaultSubobject<UWidgetComponent>("PickupWidget");
 	PickupWidget->SetupAttachment(GetRootComponent());
 	PickupWidget->SetWidgetSpace(EWidgetSpace::Screen);
-	PickupWidget->SetVisibility(false, true);
+	PickupWidget->SetVisibility(false);
 	PickupWidget->SetDrawAtDesiredSize(true);
 }
 
@@ -101,7 +101,7 @@ void AWeapon::AreaBoxEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor
 //============================================ Pickup Widget ============================================
 //
 void AWeapon::ShowPickupWidget(bool bShow) {
-	PickupWidget->SetVisibility(bShow, true);
+	PickupWidget->SetVisibility(bShow);
 }
 
 //
@@ -112,11 +112,11 @@ void AWeapon::UpdateWeaponState() {
 		case EWeaponState::EWS_Equipped:
 			AreaBox->SetCollisionEnabled(ECollisionEnabled::NoCollision); /* this will also triggers end overlap, which sets overlapping weapon to nullptr */
 			WeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-			PickupWidget->SetVisibility(false, true);
+			PickupWidget->SetVisibility(false);
 			break;
 		case EWeaponState::EWS_Dropped:
 			AreaBox->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-			//PickupWidget->SetVisibility(true, true);
+			//PickupWidget->SetVisibility(true);
 			break;
 		case EWeaponState::EWS_Initial:
 			break;
