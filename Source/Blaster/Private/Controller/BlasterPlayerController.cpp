@@ -19,3 +19,13 @@ void ABlasterPlayerController::SetHUDOverlayHealth(float CurrentHealth, float Ma
 		BlasterHUD->SetOverlayHealth(CurrentHealth, MaxHealth);
 	}
 }
+void ABlasterPlayerController::SetHUDOverlayScore(float NewScore) {
+	if (ABlasterHUD* BlasterHUD = GetHUD<ABlasterHUD>()) {
+		BlasterHUD->SetOverlayScore(NewScore);
+	}
+}
+void ABlasterPlayerController::SetHUDOverlayDefeats(int32 NewDefeats) {
+	if (ABlasterHUD* BlasterHUD = GetHUD<ABlasterHUD>()) {
+		BlasterHUD->SetOverlayDefeats(NewDefeats);
+	}
+}

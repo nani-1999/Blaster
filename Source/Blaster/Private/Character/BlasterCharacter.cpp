@@ -20,6 +20,7 @@
 //#include "Particles/ParticleSystemComponent.h"
 #include "Particles/ParticleSystem.h"
 #include "Sound/SoundCue.h"
+#include "PlayerState/BlasterPlayerState.h"
 
 #include "Blaster/Nani/NaniUtility.h"
 
@@ -98,6 +99,10 @@ ABlasterCharacter::ABlasterCharacter() :
 	//ElimParticleComp->SetAutoActivate(false);
 }
 
+/* might do 
+ * one time references, instead of casting everytime 
+ * one time references for local hud */
+
 void ABlasterCharacter::BeginPlay()
 {
 	Super::BeginPlay();
@@ -139,6 +144,74 @@ void ABlasterCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 	DOREPLIFETIME(ABlasterCharacter, CurrentHealth);
 }
 
+void ABlasterCharacter::PossessedBy(AController* NewController) {
+	Super::PossessedBy(NewController);
+
+	NANI_LOG(Warning, "PossessedBy");
+
+	SetupOverheadWidget();
+
+	if (IsLocallyControlled()) {
+		/* HUD's Overlay
+		 * this is where the character is completely valid and we can access stat values to set on HUD
+		 * using Controller as a mediator to setup and set stats on hud's overlay */
+		if (ABlasterPlayerController* BlasterPC = Cast<ABlasterPlayerController>(NewController)) {
+			/* setting up hud's overlay */
+			BlasterPC->SetupHUDOverlay();
+			/* and initializing its values */
+			BlasterPC->SetHUDOverlayHealth(CurrentHealth, MaxHealth);
+			if (ABlasterPlayerState* BlasterPS = GetPlayerState<ABlasterPlayerState>()) {
+				BlasterPC->SetHUDOverlayScore(BlasterPS->GetScore());
+				BlasterPC->SetHUDOverlayDefeats(BlasterPS->GetDefeats());
+			}
+		}
+	}
+}
+void ABlasterCharacter::OnRep_PlayerState() {
+	Super::OnRep_PlayerState();
+
+	NANI_LOG(Warning, "OnRep_PlayerState");
+
+	SetupOverheadWidget();
+
+	if (IsLocallyControlled()) {
+		/* HUD's Overlay
+		 * this is where the character is completely valid and we can access stat values to set on HUD
+		 * using Controller as a mediator to setup and set stats on hud's overlay
+		 * usually we make widget controller to manage widgets */
+		if (ABlasterPlayerController* BlasterPC = GetController<ABlasterPlayerController>()) {
+			/* setting up hud's overlay */
+			BlasterPC->SetupHUDOverlay();
+			/* and initializing its values */
+			BlasterPC->SetHUDOverlayHealth(CurrentHealth, MaxHealth);
+			if (ABlasterPlayerState* BlasterPS = GetPlayerState<ABlasterPlayerState>()) {
+				BlasterPC->SetHUDOverlayScore(BlasterPS->GetScore());
+				BlasterPC->SetHUDOverlayDefeats(BlasterPS->GetDefeats());
+			}
+		}
+	}
+}
+
+//
+//============================================ Overhead Widget ============================================
+//
+void ABlasterCharacter::SetupOverheadWidget() {
+	/* some times in early stages widgetcomponent's widget is not intialized(beginplay called)
+	 * we have to initialize if not, no worries because it has checks if widget is already created or not
+	 * peek for more, has weird call of InitWidget() on its BeginPlay() */
+	OverheadWidget->InitWidget();
+	UTextWidget* TextWidget = Cast<UTextWidget>(OverheadWidget->GetUserWidgetObject());
+	if (TextWidget) {
+		FString NetRoleStr = GetNetRoleStr<FString>(GetLocalRole());
+		FString PlayerName = GetPlayerState<APlayerState>()->GetPlayerName();
+		FString TextStr = NetRoleStr + "\n" + PlayerName;
+
+		TextWidget->SetText(FText::FromString(TextStr), 20);
+		TextWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
+		OverheadWidget->SetVisibility(true);
+	}
+}
+
 //
 //============================================ Weapon ============================================
 //
@@ -170,64 +243,6 @@ FTransform ABlasterCharacter::GetWeaponLeftHandSocketTransform() const {
 }
 
 //
-//============================================ Overhead Widget ============================================
-//
-void ABlasterCharacter::SetupOverheadWidget() {
-	/* some times in early stages widgetcomponent's widget is not intialized(beginplay called)
-	 * we have to initialize if not, no worries because it has checks if widget is already created or not 
-	 * peek for more, has weird call of InitWidget() on its BeginPlay() */
-	OverheadWidget->InitWidget();
-	UTextWidget* TextWidget = Cast<UTextWidget>(OverheadWidget->GetUserWidgetObject());
-	if (TextWidget) {
-		FString NetRoleStr = GetNetRoleStr<FString>(GetLocalRole());
-		FString PlayerName = GetPlayerState<APlayerState>()->GetPlayerName();
-		FString TextStr = NetRoleStr + "\n" + PlayerName;
-
-		TextWidget->SetText(FText::FromString(TextStr), 20);
-		TextWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
-		OverheadWidget->SetVisibility(true);
-	}
-}
-
-void ABlasterCharacter::PossessedBy(AController* NewController) {
-	Super::PossessedBy(NewController);
-
-	NANI_LOG(Warning, "PossessedBy");
-
-	SetupOverheadWidget();
-
-	if (IsLocallyControlled()) {
-		/* this is where the character is completely valid and we can access stat values to set on HUD
-		 * using Controller as a mediator to setup and set stats on hud's overlay */
-		if (ABlasterPlayerController* BlasterPC = Cast<ABlasterPlayerController>(NewController)) {
-			/* setting up hud's overlay */
-			BlasterPC->SetupHUDOverlay();
-			/* and initializing its values */
-			BlasterPC->SetHUDOverlayHealth(CurrentHealth, MaxHealth);
-		}
-	}
-}
-void ABlasterCharacter::OnRep_PlayerState() {
-	Super::OnRep_PlayerState();
-
-	NANI_LOG(Warning, "OnRep_PlayerState");
-
-	SetupOverheadWidget();
-
-	if (IsLocallyControlled()) {
-		/* this is where the character is completely valid and we can access stat values to set on HUD
-		 * using Controller as a mediator to setup and set stats on hud's overlay 
-		 * usually we make widget controller to manage widgets */
-		if (ABlasterPlayerController* BlasterPC = GetController<ABlasterPlayerController>()) {
-			/* setting up hud's overlay */
-			BlasterPC->SetupHUDOverlay();
-			/* and initializing its values */
-			BlasterPC->SetHUDOverlayHealth(CurrentHealth, MaxHealth);
-		}
-	}
-}
-
-//
 //============================================ Input ============================================
 //
 void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -251,7 +266,8 @@ void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 }
 
 void ABlasterCharacter::TestPressed() {
-	SetupOverheadWidget();
+	ABlasterPlayerState* BlasterPS = GetPlayerState<ABlasterPlayerState>();
+	if (BlasterPS) BlasterPS->AddScore(1.f);
 
 	NANI_LOG(Warning, "TestPressed");
 	ServerTestPressed();
@@ -444,6 +460,7 @@ void ABlasterCharacter::TakenAnyDamage(AActor* DamagedActor, float Damage, const
 //============================================ Elimination ============================================
 //
 void ABlasterCharacter::Eliminated() {
+	/* we does equip on server, so unequip must also be on server */
 	if (Combat) Combat->UnEquipWeapon();
 
 	/* Happens on Authority */

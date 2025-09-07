@@ -18,4 +18,6 @@ public:
 	/* HUD's Overlay */
 	void SetupHUDOverlay();
 	void SetHUDOverlayHealth(float CurrentHealth, float MaxHealth);
+	void SetHUDOverlayScore(float NewScore);
+	void SetHUDOverlayDefeats(int32 NewDefeats);
 };

@@ -7,9 +7,6 @@
 
 #include "Blaster/Nani/NaniUtility.h"
 
-//
-//============================================ Health Bar ============================================
-//
 void UBlasterOverlay::SetHealth(float CurrentHealth, float MaxHealth) {
 	/* Health Bar */
 	if (HealthBar) HealthBar->SetPercent(CurrentHealth, MaxHealth);
@@ -23,4 +20,12 @@ void UBlasterOverlay::SetHealth(float CurrentHealth, float MaxHealth) {
 		FText HealthTxt = FText::Join(FText::FromString("/"), FText::AsNumber(CurrentHealth, &FormattingOptions), FText::AsNumber(MaxHealth, &FormattingOptions));
 		HealthText->SetText(HealthTxt);
 	}
+}
+
+void UBlasterOverlay::SetScore(float NewScore) {
+	if (ScoreText) ScoreText->SetText(FText::AsNumber(NewScore));
+}
+
+void UBlasterOverlay::SetDefeats(int32 NewDefeats) {
+	if (DefeatsText) DefeatsText->SetText(FText::AsNumber(NewDefeats));
 }

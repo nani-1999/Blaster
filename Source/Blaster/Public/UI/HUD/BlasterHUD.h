@@ -63,4 +63,6 @@ public:
 	/* Overlay */
 	void SetupOverlay(APlayerController* Controller);
 	void SetOverlayHealth(float CurrentHealth, float MaxHealth);
+	void SetOverlayScore(float NewScore);
+	void SetOverlayDefeats(int32 NewDefeats);
 };

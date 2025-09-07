@@ -59,3 +59,9 @@ void ABlasterHUD::SetupOverlay(APlayerController* Controller) {
 void ABlasterHUD::SetOverlayHealth(float CurrentHealth, float MaxHealth) {
 	if (Overlay) Overlay->SetHealth(CurrentHealth, MaxHealth);
 }
+void ABlasterHUD::SetOverlayScore(float NewScore) {
+	if (Overlay) Overlay->SetScore(NewScore);
+}
+void ABlasterHUD::SetOverlayDefeats(int32 NewDefeats) {
+	if (Overlay) Overlay->SetDefeats(NewDefeats);
+}
