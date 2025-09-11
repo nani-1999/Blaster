@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Weapon/WeaponTypes.h"
 #include "CombatComponent.generated.h"
 
 class AWeapon;
@@ -63,7 +64,7 @@ protected:
 	void TraceUnderCursor(FHitResult& OutHitResult, FVector& EndPoint, float TraceLength = 5000.f, bool bOffset = true);
 
 	/* Fire */
-	bool bFiring; /* Fire Buttom Pressed */
+	bool bFirePressed; /* Fire Buttom Pressed */
 	void FireWeapon();
 
 	UFUNCTION(Server, Reliable)
@@ -71,33 +72,46 @@ protected:
 	UFUNCTION(NetMulticast, Unreliable)
 	void MulticastFire();
 
+	UFUNCTION(Server, Unreliable)
+	void ServerFireEmpty();
+	UFUNCTION(NetMulticast, Unreliable)
+	void MulticastFireEmpty();
+
 	/* Fire Timers */
 	bool bAllowFire;
 	FTimerHandle AllowFireTimerHandle;
 	void AllowFire();
 
-	//UFUNCTION()
-	//void OnRep_Firing(bool OldFiring);
+	//bool CanFire();
 
+	/* Montage */
 	UPROPERTY(EditDefaultsOnly)
 	TObjectPtr<UAnimMontage> FireMontage;
 	void PlayCharacterFireMontage();
 
-	/* Hit */
-	//UPROPERTY(EditDefaultsOnly)
-	//TObjectPtr<UAnimMontage> HitReactMontage;
-	//void PlayCharacterHitReactMontage();
+	/* Ammo */
+	TMap<EWeaponType, int32> AllCarriedAmmo; /* Carried Ammo of All Weapon Types */
+	UPROPERTY(ReplicatedUsing = OnRep_CarriedAmmo)
+	int32 CarriedAmmo; /* Carried Ammo of Equipped Weapon Type */
+	UFUNCTION()
+	void OnRep_CarriedAmmo();
 
 public:
 	/* Weapon */
 	void EquipWeapon(AWeapon* WeaponToEquip);
 	FTransform GetWeaponLeftHandSocketTransform() const;
-	void UnEquipWeapon();
+	void DropWeapon();
 
 	/* Getters */
-	FORCEINLINE AWeapon* GetEquippedWeapon() const { return EquippedWeapon; }
+	//FORCEINLINE AWeapon* GetEquippedWeapon() const { return EquippedWeapon; }
+	FORCEINLINE bool IsWeaponEquipped() const { return !(EquippedWeapon == nullptr); }
 	FORCEINLINE bool IsAiming() const { return bAiming; }
 	FORCEINLINE float GetBaseWalkSpeed() const { return BaseWalkSpeed; }
+
+	/* Ammo */
+	//int32 GetWeaponAmmoCapacity() const;
+	int32 GetWeaponAmmo() const;
+	FORCEINLINE int32 GetCarriedAmmo() const { return EquippedWeapon == nullptr ? 0 : CarriedAmmo; }
 
 	/* Aim */
 	void SetAiming(bool bIsAiming);
@@ -105,10 +119,6 @@ public:
 	/* Fire */
 	void SetFiring(bool bPressed);
 
-	/* Setters */
+	/* Field Of View */
 	FORCEINLINE void SetCamera(UCameraComponent* Camera) { CompOwnerCamera = Camera; }
-
-	/* Hit */
-	//UFUNCTION(NetMulticast, Unreliable)
-	//void MulticastHit();
 };

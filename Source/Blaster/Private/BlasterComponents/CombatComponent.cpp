@@ -11,6 +11,7 @@
 #include "UI/HUD/BlasterHUD.h"
 #include "Camera/CameraComponent.h"
 #include "Interface/CombatInterface.h"
+#include "Controller/BlasterPlayerController.h" 
 
 #include "Blaster/Nani/NaniUtility.h"
 #include "DrawDebugHelpers.h"
@@ -20,9 +21,12 @@ UCombatComponent::UCombatComponent() :
 	AimWalkSpeed{ 300.f },
 	BaseFOV{ 90.f },
 	InterpedFOV{ BaseFOV },
-	bAllowFire{ true }
+	bAllowFire{ true },
+	CarriedAmmo{ 0 }
 {
 	PrimaryComponentTick.bCanEverTick = true;
+
+	AllCarriedAmmo.Add(EWeaponType::EWT_AssaultRifle, 69);
 }
 
 void UCombatComponent::BeginPlay()
@@ -73,6 +77,7 @@ void UCombatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 
 	DOREPLIFETIME(UCombatComponent, EquippedWeapon);
 	DOREPLIFETIME(UCombatComponent, bAiming);
+	DOREPLIFETIME_CONDITION(UCombatComponent, CarriedAmmo, ELifetimeCondition::COND_OwnerOnly);
 	//DOREPLIFETIME(UCombatComponent, bFiring);
 }
 
@@ -95,10 +100,7 @@ void UCombatComponent::EquipWeapon(AWeapon* WeaponToEquip) {
 	/* Happens on Authority */
 	if (WeaponToEquip == nullptr) return;
 
-	/* some alternate way maybe */
-	//EquippedWeapon = WeaponToEquip->SetWeaponState(EWeaponState::EWS_Equipped, USeneComponent*);
-
-	if (EquippedWeapon) UnEquipWeapon(); // custom
+	if (EquippedWeapon) DropWeapon(); // custom
 
 	ACharacter* CompOwner = GetOwner<ACharacter>();
 	if (CompOwner) {
@@ -113,17 +115,37 @@ void UCombatComponent::EquipWeapon(AWeapon* WeaponToEquip) {
 				EquippedWeapon = WeaponToEquip;
 				SetOrientRotationToMovement(!EquippedWeapon/* ? false : true*/);
 				EquippedWeapon->SetOwner(CompOwner);
+
+				/* Carried Ammo changed based on Equipped Weapon Type 
+				 * find always since it has all weapon types values */
+				CarriedAmmo = AllCarriedAmmo.FindChecked(EquippedWeapon->GetWeaponType());
 			}
 			//else {
 				/* change WeaponToEquip's WeaponState back to original and pretend like nothing happend */
 			//}
+
+			/* HUD's Overlay */
+			if (CompOwner->IsLocallyControlled()) {
+				ABlasterPlayerController* BlasterPC = CompOwner->GetController<ABlasterPlayerController>();
+				BlasterPC->SetHUDOverlayText(EOverlayText::EOT_CarriedAmmo, CarriedAmmo);
+				BlasterPC->SetHUDOverlayText(EOverlayText::EOT_Ammo, GetWeaponAmmo());
+			}
 		}
 	}
 }
 void UCombatComponent::OnRep_EquippedWeapon(AWeapon* OldEquippedWeapon) {
 	SetOrientRotationToMovement(EquippedWeapon ? false : true);
+
+	/* HUD's Overlay */
+	ACharacter* CompOwner = GetOwner<ACharacter>();
+	if (CompOwner && CompOwner->IsLocallyControlled()) {
+		ABlasterPlayerController* BlasterPC = CompOwner->GetController<ABlasterPlayerController>();
+		BlasterPC->SetHUDOverlayText(EOverlayText::EOT_CarriedAmmo, CarriedAmmo);
+		BlasterPC->SetHUDOverlayText(EOverlayText::EOT_Ammo, GetWeaponAmmo());
+	}
 }
-void UCombatComponent::UnEquipWeapon() {
+void UCombatComponent::DropWeapon() {
+	/* Happens on Authority */
 	if (EquippedWeapon == nullptr) return;
 
 	/* detaching weapon */
@@ -142,6 +164,17 @@ void UCombatComponent::UnEquipWeapon() {
 	/* setting weapon state and nulling out our weapon ptr */
 	EquippedWeapon->SetWeaponState(EWeaponState::EWS_Dropped);
 	EquippedWeapon = nullptr;
+
+	/* no equipped weapon, no carried ammo */
+	CarriedAmmo = 0;
+
+	/* HUD's Overlay */
+	ACharacter* CompOwner = GetOwner<ACharacter>();
+	if (CompOwner && CompOwner->IsLocallyControlled()) {
+		ABlasterPlayerController* BlasterPC = CompOwner->GetController<ABlasterPlayerController>();
+		BlasterPC->SetHUDOverlayText(EOverlayText::EOT_CarriedAmmo, CarriedAmmo);
+		BlasterPC->SetHUDOverlayText(EOverlayText::EOT_Ammo, GetWeaponAmmo());
+	}
 }
 
 //
@@ -278,10 +311,18 @@ void UCombatComponent::TraceUnderCursor(FHitResult& OutHitResult, FVector& Curso
 void UCombatComponent::SetFiring(bool bPressed) {
 	if (EquippedWeapon == nullptr) return;
 
-	bFiring = bPressed;
+	bFirePressed = bPressed; /* FireButtonPressed */
 
-	if (bFiring && bAllowFire) {
-		FireWeapon();
+	if (bFirePressed && bAllowFire) {
+		if (EquippedWeapon->GetAmmo() > 0) {
+			FireWeapon();
+		}
+		else {
+			/* we only kek when bFirePressed
+			 * we don't brrrrrrrrrr and kek at end 
+			 * remember there will be a slight delay, since we server and from there multicasting */
+			ServerFireEmpty();
+		}
 	}
 }
 void UCombatComponent::FireWeapon() {
@@ -299,26 +340,37 @@ void UCombatComponent::FireWeapon() {
 	 * !note this is not always the case for some type of weapons */
 	ServerFire(CursorTraceHit.bBlockingHit ? CursorTraceHit.ImpactPoint : CursorEndPoint);
 
-	/* Timer 
-	 * Doing Locally */
+	/* doing Timer Locally */
 	GetWorld()->GetTimerManager().SetTimer(AllowFireTimerHandle, this, &UCombatComponent::AllowFire, EquippedWeapon->GetFireRate());
 }
 void UCombatComponent::AllowFire() {
 	bAllowFire = true;
 
 	/* checking to see if we still pressed fire button and also is weapon automatic */
-	if (bFiring && EquippedWeapon->IsAutomatic()) FireWeapon();
-}
+	if (bFirePressed && EquippedWeapon->IsAutomatic() && (EquippedWeapon->GetAmmo() > 0)) FireWeapon();
 
+	/* use this instead if you want to brrrrrrr and kek at the end */
+	//if (bFirePressed && EquippedWeapon->IsAutomatic()) {
+	//	if (EquippedWeapon->GetAmmo() > 0) {
+	//		FireWeapon();
+	//	}
+	//	else {
+	//		ServerFireEmpty();
+	//	}
+	//}
+}
 
 void UCombatComponent::ServerFire_Implementation(const FVector_NetQuantize HitTarget) {
 	if (EquippedWeapon == nullptr) return;
 	
+	/* ammo check on server too, to prevent cheating */
+	if (EquippedWeapon->GetAmmo() <= 0) return;
+
 	/* firing bullet only on server */
 	EquippedWeapon->FireBullet(HitTarget);
 
-	/* multicast rpc must be called only by server to work 
-	 * invoked on the server itself and all the clients that had a replicated copy of that actor 
+	/* multicast rpc must be called only by server to work
+	 * multicast rpc, invoked on the server itself and all the clients that had a replicated copy of that actor
 	 * unlike client rpc which only invokes on owning client of that actor, if the actor doesn't have a owning client (owner) it doesn't invoke at all */
 	MulticastFire();
 }
@@ -329,51 +381,35 @@ void UCombatComponent::MulticastFire_Implementation() {
 	EquippedWeapon->PlayFireAnimation();
 }
 
-//
-//============================================ Hit ============================================
-//
-//void UCombatComponent::MulticastHit_Implementation() {
-//	/* playing hit react montage */
-//	PlayCharacterHitReactMontage();
-//}
-//void UCombatComponent::PlayCharacterHitReactMontage() {
-//	if (HitReactMontage) {
-//		ACharacter* CompOwner = GetOwner<ACharacter>();
-//		if (CompOwner) {
-//			UAnimInstance* AnimInst = CompOwner->GetMesh()->GetAnimInstance();
-//			if (AnimInst) {
-//				AnimInst->Montage_Play(HitReactMontage);
-//				AnimInst->Montage_JumpToSection(FName("Front"));
-//			}
-//		}
-//	}
-//}
+void UCombatComponent::ServerFireEmpty_Implementation() {
+	if (EquippedWeapon == nullptr) return;
 
-//void UCombatComponent::OnRep_Firing(bool OldFiring) {
-//	if (bFiring) {
-//		/* play character fire animation */
-//		PlayCharacterFireMontage();
-//
-//		/* play weapon animation which has particle and sound 
-//		 * also shell eject
-//		 * has auth check which prevents from spawning projectile */
-//		EquippedWeapon->Fire(FVector::ZeroVector);
-//	}
-//}
+	MulticastFireEmpty();
+}
+void UCombatComponent::MulticastFireEmpty_Implementation() {
+	if (EquippedWeapon == nullptr) return;
 
-//void UCombatComponent::SetFiring(bool bIsFiring) {
-//	if (EquippedWeapon == nullptr) return;
+	EquippedWeapon->PlayFireEmpty();
+}
+
 //
-//	bFiring = bIsFiring;
-//	if (bFiring) {
-//		/* play character fire animation */
-//		PlayFireMontage();
+//============================================ Ammo ============================================
 //
-//		/* play weapon fire animation, like particle and sound */
-//		//FHitResult CursorTraceHit;
-//		//TraceUnderCursor(CursorTraceHit, 5000.f);
-//		//if (CursorTraceHit.bBlockingHit) {
-//		//	EquippedWeapon->Fire(CursorTraceHit.Location);
-//		//}
-//	}
+//int32 UCombatComponent::GetWeaponAmmoCapacity() const {
+//	return EquippedWeapon == nullptr ? 0 : EquippedWeapon->GetAmmoCapacity();
 //}
+int32 UCombatComponent::GetWeaponAmmo() const {
+	return EquippedWeapon == nullptr ? 0 : EquippedWeapon->GetAmmo();
+}
+
+void UCombatComponent::OnRep_CarriedAmmo() {
+	NANI_LOG(Warning, "OnRep_CarriedAmmo");
+
+	if (ACharacter* CompOwner = GetOwner<ACharacter>()) {
+		if (ABlasterPlayerController* CompOwnerPC = CompOwner->GetController<ABlasterPlayerController>()) {
+			if (CompOwnerPC->IsLocalController()) {
+				CompOwnerPC->SetHUDOverlayText(EOverlayText::EOT_CarriedAmmo, CarriedAmmo);
+			}
+		}
+	}
+}

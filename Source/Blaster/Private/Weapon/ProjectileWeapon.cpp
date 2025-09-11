@@ -4,9 +4,6 @@
 #include "Weapon/ProjectileWeapon.h"
 #include "Weapon/Projectile.h"
 #include "Engine/SkeletalMeshSocket.h"
-#include "Components/BoxComponent.h"
-#include "Interface/CombatInterface.h"
-#include "BlasterComponents/CombatComponent.h"
 
 #include "Blaster/Nani/NaniUtility.h"
 
@@ -40,17 +37,10 @@ void AProjectileWeapon::FireBullet(const FVector& HitTarget) {
 
 	/* Spawning Weapon Bullet */
 	FActorSpawnParameters SpawnParams;
-	SpawnParams.Owner = this; /* weapon */
-	SpawnParams.Instigator = GetOwner<APawn>(); /* weapon's owner which is APawn */
+	SpawnParams.Owner = this; /* Weapon */
+	SpawnParams.Instigator = GetOwner<APawn>(); /* Weapon's Owner, which is APawn */
 
 	AProjectile* Projectile = GetWorld()->SpawnActor<AProjectile>(ProjectileClass, MuzzleSocketTransform, SpawnParams);
-	//Projectile->GetBoxComp()->OnComponentHit.AddDynamic(this, &AProjectileWeapon::OnProjectileHit);
-}
 
-//void AProjectileWeapon::OnProjectileHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit) {
-//	/* happens on Authority */
-//	if (ICombatInterface* CombatInterface = Cast<ICombatInterface>(OtherActor)) {
-//		UCombatComponent* CombatComp = CombatInterface->GetCombatComponent();
-//		if (CombatComp) CombatComp->MulticastHit();
-//	}
-//}
+	Super::FireBullet(HitTarget);
+}

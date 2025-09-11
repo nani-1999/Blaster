@@ -22,6 +22,11 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UProgressBar> GhostBar;
 
+	float CurrentValue;
+	float MaxValue;
+
 public:
-	void SetPercent(float CurrentValue, float MaxValue);
+	FORCEINLINE void SetCurrentValue(float NewCurrentValue) { SetPercent(NewCurrentValue, MaxValue); }
+	FORCEINLINE void SetMaxValue(float NewMaxValue) { SetPercent(CurrentValue, NewMaxValue); }
+	void SetPercent(float NewCurrentValue, float NewMaxValue);
 };

@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
+#include "UI/BlasterUITypes.h"
 #include "BlasterPlayerController.generated.h"
 
 /**
@@ -17,7 +18,10 @@ class BLASTER_API ABlasterPlayerController : public APlayerController
 public:
 	/* HUD's Overlay */
 	void SetupHUDOverlay();
-	void SetHUDOverlayHealth(float CurrentHealth, float MaxHealth);
-	void SetHUDOverlayScore(float NewScore);
-	void SetHUDOverlayDefeats(int32 NewDefeats);
+	void SetHUDOverlayText(EOverlayText TextWidget, float Value);
+	//void SetHUDOverlayMaxHealth(float NewVal);
+	//void SetHUDOverlayHealth(float NewVal);
+	//void SetHUDOverlayScore(float NewVal);
+	//void SetHUDOverlayDefeats(int32 NewVal);
+	//void SetHUDOverlayAmmo(int32 NewVal);
 };

@@ -4,16 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "UI/BlasterUITypes.h"
 #include "BlasterOverlay.generated.h"
-
-//UENUM()
-//enum class EOverlayText : uint8 {
-//	EOT_Health,
-//	EOT_Score,
-//	EOT_Elims,
-//	EOT_Defeats,
-//	EOT_MAX
-//};
 
 class UTextBlock;
 class UBlasterProgressBar;
@@ -27,6 +19,8 @@ protected:
 	/* Health Bar */
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UBlasterProgressBar> HealthBar;
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> MaxHealthText;
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> HealthText;
 
@@ -42,8 +36,17 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> DefeatsText;
 
+	/* Ammo */
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> AmmoText;
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> CarriedAmmoText;
+
 public:
-	void SetHealth(float CurrentHealth, float MaxHealth);
-	void SetScore(float NewScore);
-	void SetDefeats(int32 NewDefeats);
+	//void SetHealth(int32 CurrentHealth, float MaxHealth);
+	//void SetScore(int32 NewScore);
+	//void SetDefeats(int32 NewDefeats);
+	//void SetAmmo(int32 NewAmmo);
+
+	void SetText(EOverlayText TextWidget, float Value);
 };

@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Weapon/WeaponTypes.h"
 #include "Weapon.generated.h"
 
 class USkeletalMeshComponent;
@@ -11,6 +12,8 @@ class UBoxComponent;
 class UWidgetComponent;
 class UAnimationAsset;
 class ACasing;
+class ABlasterPlayerController;
+class USoundCue;
 
 UENUM()
 enum class EWeaponState : uint8 {
@@ -43,6 +46,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly)
 	TObjectPtr<UAnimationAsset> FireAnimation;
 
+	/* Sound */
+	UPROPERTY(EditDefaultsOnly)
+	TObjectPtr<USoundCue> FireEmptySound;
+
 	/* Area Box */
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UBoxComponent> AreaBox;
@@ -74,11 +81,30 @@ protected:
 	UPROPERTY(EditDefaultsOnly)
 	float FOVInterpSpeed;
 
-	/* Fire */
+	/* Fire Bullet */
 	UPROPERTY(EditDefaultsOnly)
 	float FireRate;
 	UPROPERTY(EditDefaultsOnly)
 	bool bIsAutomatic;
+
+	/* Ammo */
+	UPROPERTY(EditDefaultsOnly)
+	int32 AmmoCapacity;
+	UPROPERTY(ReplicatedUsing = OnRep_Ammo)
+	int32 Ammo;
+	UFUNCTION()
+	virtual void OnRep_Ammo();
+
+	//void SpendRound();
+
+	/* Weapon Type */
+	UPROPERTY(EditDefaultsOnly)
+	EWeaponType WeaponType;
+
+	/* HUD */
+	ABlasterPlayerController* BlasterPC;
+	void DetermineOwnerLocal(AActor* NetLocal);
+	virtual void OnRep_Owner() override;
 
 public:
 	/* Pickup Widget */
@@ -91,10 +117,11 @@ public:
 	FTransform GetLeftHandSocketTransform() const;
 
 	/* Fire Bullet */
-	virtual void FireBullet(const FVector& HitTarget) { }
+	virtual void FireBullet(const FVector& HitTarget);
 
 	/* Animation */
 	void PlayFireAnimation();
+	void PlayFireEmpty();
 
 	/* Crosshair */
 	UPROPERTY(EditDefaultsOnly)
@@ -115,4 +142,14 @@ public:
 	/* Fire */
 	FORCEINLINE float GetFireRate() const { return FireRate; }
 	FORCEINLINE bool IsAutomatic() const { return bIsAutomatic; }
+
+	/* Ammo */
+	FORCEINLINE int32 GetAmmoCapacity() const { return AmmoCapacity; }
+	FORCEINLINE int32 GetAmmo() const { return Ammo; }
+
+	/* Weapon Type */
+	FORCEINLINE EWeaponType GetWeaponType() const { return WeaponType; }
+
+	/* HUD */
+	virtual void SetOwner(AActor* NewOwner) override;
 };

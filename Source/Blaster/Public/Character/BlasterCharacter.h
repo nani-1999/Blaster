@@ -112,10 +112,10 @@ protected:
 	/* Stats */
 	UPROPERTY(VisibleAnywhere)
 	float MaxHealth;
-	UPROPERTY(ReplicatedUsing = OnRep_CurrentHealth)
-	float CurrentHealth;
+	UPROPERTY(ReplicatedUsing = OnRep_Health)
+	float Health;
 	UFUNCTION()
-	void OnRep_CurrentHealth(float OldCurrentHealth);
+	void OnRep_Health(float OldHealth);
 
 	/* Damage */
 	UFUNCTION()

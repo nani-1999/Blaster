@@ -56,12 +56,25 @@ void ABlasterHUD::SetupOverlay(APlayerController* Controller) {
 		}
 	}
 }
-void ABlasterHUD::SetOverlayHealth(float CurrentHealth, float MaxHealth) {
-	if (Overlay) Overlay->SetHealth(CurrentHealth, MaxHealth);
+void ABlasterHUD::SetOverlayText(EOverlayText TextWidget, float Value) {
+	if (Overlay) Overlay->SetText(TextWidget, Value);
 }
-void ABlasterHUD::SetOverlayScore(float NewScore) {
-	if (Overlay) Overlay->SetScore(NewScore);
-}
-void ABlasterHUD::SetOverlayDefeats(int32 NewDefeats) {
-	if (Overlay) Overlay->SetDefeats(NewDefeats);
-}
+//void ABlasterHUD::SetOverlayMaxHealth(float NewVal) {
+//	/* all these shitty functions because i don't know how to access EOverlayText enum class here */
+//	if (Overlay) Overlay->SetText(EOverlayText::EOT_MaxHealth, NewVal);
+//}
+//void ABlasterHUD::SetOverlayHealth(float NewVal) {
+//	if (Overlay) Overlay->SetText(EOverlayText::EOT_Health, NewVal);
+//}
+//void ABlasterHUD::SetOverlayScore(float NewVal) {
+//	if (Overlay) Overlay->SetText(EOverlayText::EOT_Score, NewVal);
+//}
+//void ABlasterHUD::SetOverlayDefeats(int32 NewVal) {
+//	if (Overlay) Overlay->SetText(EOverlayText::EOT_Defeats, NewVal);
+//}
+//void ABlasterHUD::SetOverlayAmmo(int32 NewVal) {
+//	if (Overlay) Overlay->SetText(EOverlayText::EOT_Ammo, NewVal);
+//}
+//void ABlasterHUD::SetOverlayAmmoCapacity(int32 NewVal) {
+//	if (Overlay) Overlay->SetText(EOverlayText::EOT_AmmoCapacity, NewVal);
+//}

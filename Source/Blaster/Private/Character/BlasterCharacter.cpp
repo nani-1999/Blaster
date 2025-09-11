@@ -26,7 +26,7 @@
 
 ABlasterCharacter::ABlasterCharacter() :
 	MaxHealth{ 100.f },
-	CurrentHealth{ 80.f },
+	Health{ 80.f },
 	bEliminated{ false },
 	ElimAnimTime{ 5.f }
 {
@@ -71,7 +71,7 @@ ABlasterCharacter::ABlasterCharacter() :
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 
 	/* Character Movement */
-	GetCharacterMovement()->MaxWalkSpeed = Combat->GetBaseWalkSpeed();
+	GetCharacterMovement()->MaxWalkSpeed = Combat->GetBaseWalkSpeed(); /* must be set after combat component is created */
 	GetCharacterMovement()->JumpZVelocity = 1600.f;
 	GetCharacterMovement()->GravityScale = 2.f;
 
@@ -101,7 +101,8 @@ ABlasterCharacter::ABlasterCharacter() :
 
 /* might do 
  * one time references, instead of casting everytime 
- * one time references for local hud */
+ * one time references for local hud 
+ * HUD setter codes modularization */
 
 void ABlasterCharacter::BeginPlay()
 {
@@ -141,7 +142,7 @@ void ABlasterCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 
 	DOREPLIFETIME_CONDITION(ABlasterCharacter, OverlappingWeapon, COND_OwnerOnly); /* replicates to owning client only */
 	//DOREPLIFETIME_CONDITION(ABlasterCharacter, CurrentHealth, COND_OwnerOnly);
-	DOREPLIFETIME(ABlasterCharacter, CurrentHealth);
+	DOREPLIFETIME(ABlasterCharacter, Health);
 }
 
 void ABlasterCharacter::PossessedBy(AController* NewController) {
@@ -155,14 +156,19 @@ void ABlasterCharacter::PossessedBy(AController* NewController) {
 		/* HUD's Overlay
 		 * this is where the character is completely valid and we can access stat values to set on HUD
 		 * using Controller as a mediator to setup and set stats on hud's overlay */
-		if (ABlasterPlayerController* BlasterPC = Cast<ABlasterPlayerController>(NewController)) {
+		if (ABlasterPlayerController* BlasterPC = GetController<ABlasterPlayerController>()) {
 			/* setting up hud's overlay */
 			BlasterPC->SetupHUDOverlay();
 			/* and initializing its values */
-			BlasterPC->SetHUDOverlayHealth(CurrentHealth, MaxHealth);
+			BlasterPC->SetHUDOverlayText(EOverlayText::EOT_MaxHealth, MaxHealth);
+			BlasterPC->SetHUDOverlayText(EOverlayText::EOT_Health, Health);
 			if (ABlasterPlayerState* BlasterPS = GetPlayerState<ABlasterPlayerState>()) {
-				BlasterPC->SetHUDOverlayScore(BlasterPS->GetScore());
-				BlasterPC->SetHUDOverlayDefeats(BlasterPS->GetDefeats());
+				BlasterPC->SetHUDOverlayText(EOverlayText::EOT_Score, BlasterPS->GetScore());
+				BlasterPC->SetHUDOverlayText(EOverlayText::EOT_Defeats, BlasterPS->GetDefeats());
+			}
+			if (Combat) {
+				BlasterPC->SetHUDOverlayText(EOverlayText::EOT_CarriedAmmo, Combat->GetCarriedAmmo());
+				BlasterPC->SetHUDOverlayText(EOverlayText::EOT_Ammo, Combat->GetWeaponAmmo());
 			}
 		}
 	}
@@ -183,10 +189,15 @@ void ABlasterCharacter::OnRep_PlayerState() {
 			/* setting up hud's overlay */
 			BlasterPC->SetupHUDOverlay();
 			/* and initializing its values */
-			BlasterPC->SetHUDOverlayHealth(CurrentHealth, MaxHealth);
+			BlasterPC->SetHUDOverlayText(EOverlayText::EOT_MaxHealth, MaxHealth);
+			BlasterPC->SetHUDOverlayText(EOverlayText::EOT_Health, Health);
 			if (ABlasterPlayerState* BlasterPS = GetPlayerState<ABlasterPlayerState>()) {
-				BlasterPC->SetHUDOverlayScore(BlasterPS->GetScore());
-				BlasterPC->SetHUDOverlayDefeats(BlasterPS->GetDefeats());
+				BlasterPC->SetHUDOverlayText(EOverlayText::EOT_Score, BlasterPS->GetScore());
+				BlasterPC->SetHUDOverlayText(EOverlayText::EOT_Defeats, BlasterPS->GetDefeats());
+			}
+			if (Combat) {
+				BlasterPC->SetHUDOverlayText(EOverlayText::EOT_CarriedAmmo, Combat->GetCarriedAmmo());
+				BlasterPC->SetHUDOverlayText(EOverlayText::EOT_Ammo, Combat->GetWeaponAmmo());
 			}
 		}
 	}
@@ -266,27 +277,14 @@ void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 }
 
 void ABlasterCharacter::TestPressed() {
-	ABlasterPlayerState* BlasterPS = GetPlayerState<ABlasterPlayerState>();
-	if (BlasterPS) BlasterPS->AddScore(1.f);
-
 	NANI_LOG(Warning, "TestPressed");
 	ServerTestPressed();
 }
 void ABlasterCharacter::ServerTestPressed_Implementation() {
-
 	NANI_LOG(Warning, "ServerTestPressed");
-	//CurrentHealth += 5.f;
-	//if (IsLocallyControlled()) {
-	//	/* always do hud updates on locally controlled clients only */
-	//	if (ABlasterPlayerController* BlasterPC = GetController<ABlasterPlayerController>()) {
-	//		/* using player controller as a mediatory to set health on hud */
-	//		BlasterPC->SetHUDOverlayHealth(CurrentHealth, MaxHealth);
-	//	}
-	//}
 	MulticastTestPressed();
 }
 void ABlasterCharacter::MulticastTestPressed_Implementation() {
-
 	NANI_LOG(Warning, "MulticastTestPressed");
 }
 
@@ -406,21 +404,20 @@ void ABlasterCharacter::PlayMontage(UAnimMontage* MontageToPlay, FName SectionNa
 	}
 }
 
-
 //
 //============================================ Stats ============================================
 //
-void ABlasterCharacter::OnRep_CurrentHealth(float OldCurrentHealth) {
+void ABlasterCharacter::OnRep_Health(float OldHealth) {
 	/* HUD
 	 * always do hud updates on locally controlled clients only
 	 * using player controller as a mediatory to set health on hud */
 	if (IsLocallyControlled()) {
 		if (ABlasterPlayerController* BlasterPC = GetController<ABlasterPlayerController>()) {
-			BlasterPC->SetHUDOverlayHealth(CurrentHealth, MaxHealth);
+			BlasterPC->SetHUDOverlayText(EOverlayText::EOT_Health, Health);
 		}
 	}
 
-	if (CurrentHealth && CurrentHealth < OldCurrentHealth) {
+	if (Health && Health < OldHealth) {
 		/* means health is decreased 
 	     * checking currenthealth to prevent elimination montage confliction */
 		PlayMontage(HitReactMontage, FName("Front"));
@@ -434,18 +431,18 @@ void ABlasterCharacter::TakenAnyDamage(AActor* DamagedActor, float Damage, const
 	NANI_LOG(Warning, "%s Dealt %f Damage on %s using %s", *InstigatedBy->GetName(), Damage, *DamagedActor->GetName(), *DamageCauser->GetName());
 
 	/* Happens on Authority */
-	CurrentHealth = FMath::Clamp(CurrentHealth - Damage, 0.f, MaxHealth);
+	Health = FMath::Clamp(Health - Damage, 0.f, MaxHealth);
 
 	/* HUD 
 	 * always do hud updates on locally controlled clients only */
 	if (IsLocallyControlled()) {
 		if (ABlasterPlayerController* BlasterPC = GetController<ABlasterPlayerController>()) {
-			BlasterPC->SetHUDOverlayHealth(CurrentHealth, MaxHealth);
+			BlasterPC->SetHUDOverlayText(EOverlayText::EOT_Health, Health);
 		}
 	}
 
 	/* checking for Elimination */
-	if (CurrentHealth <= 0.f) {
+	if (Health <= 0.f) {
 		if (ABlasterGameMode* BlasterGM = GetWorld()->GetAuthGameMode<ABlasterGameMode>()) {
 			BlasterGM->EliminatePlayer(this, Controller, InstigatedBy);
 		}
@@ -461,7 +458,7 @@ void ABlasterCharacter::TakenAnyDamage(AActor* DamagedActor, float Damage, const
 //
 void ABlasterCharacter::Eliminated() {
 	/* we does equip on server, so unequip must also be on server */
-	if (Combat) Combat->UnEquipWeapon();
+	if (Combat) Combat->DropWeapon();
 
 	/* Happens on Authority */
 	MulticastEliminated();
@@ -552,7 +549,7 @@ bool ABlasterCharacter::IsAccelerating() {
 	return (bool)GetCharacterMovement()->GetCurrentAcceleration().Size();
 }
 bool ABlasterCharacter::IsWeaponEquipped() {
-	return (Combat && Combat->GetEquippedWeapon());
+	return (Combat && Combat->IsWeaponEquipped());
 }
 bool ABlasterCharacter::IsAiming() {
 	return (Combat && Combat->IsAiming());

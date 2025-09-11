@@ -14,18 +14,34 @@ void ABlasterPlayerController::SetupHUDOverlay() {
 		BlasterHUD->SetupOverlay(this);
 	}
 }
-void ABlasterPlayerController::SetHUDOverlayHealth(float CurrentHealth, float MaxHealth) {
+void ABlasterPlayerController::SetHUDOverlayText(EOverlayText TextWidget, float Value) {
 	if (ABlasterHUD* BlasterHUD = GetHUD<ABlasterHUD>()) {
-		BlasterHUD->SetOverlayHealth(CurrentHealth, MaxHealth);
+		BlasterHUD->SetOverlayText(TextWidget, Value);
 	}
 }
-void ABlasterPlayerController::SetHUDOverlayScore(float NewScore) {
-	if (ABlasterHUD* BlasterHUD = GetHUD<ABlasterHUD>()) {
-		BlasterHUD->SetOverlayScore(NewScore);
-	}
-}
-void ABlasterPlayerController::SetHUDOverlayDefeats(int32 NewDefeats) {
-	if (ABlasterHUD* BlasterHUD = GetHUD<ABlasterHUD>()) {
-		BlasterHUD->SetOverlayDefeats(NewDefeats);
-	}
-}
+//void ABlasterPlayerController::SetHUDOverlayMaxHealth(float NewVal) {
+//	/* all these shitty functions because i don't know how to access EOverlayText enum class here */
+//	if (ABlasterHUD* BlasterHUD = GetHUD<ABlasterHUD>()) {
+//		BlasterHUD->SetOverlayMaxHealth(NewVal);
+//	}
+//}
+//void ABlasterPlayerController::SetHUDOverlayHealth(float NewVal) {
+//	if (ABlasterHUD* BlasterHUD = GetHUD<ABlasterHUD>()) {
+//		BlasterHUD->SetOverlayHealth(NewVal);
+//	}
+//}
+//void ABlasterPlayerController::SetHUDOverlayScore(float NewVal) {
+//	if (ABlasterHUD* BlasterHUD = GetHUD<ABlasterHUD>()) {
+//		BlasterHUD->SetOverlayScore(NewVal);
+//	}
+//}
+//void ABlasterPlayerController::SetHUDOverlayDefeats(int32 NewVal) {
+//	if (ABlasterHUD* BlasterHUD = GetHUD<ABlasterHUD>()) {
+//		BlasterHUD->SetOverlayDefeats(NewVal);
+//	}
+//}
+//void ABlasterPlayerController::SetHUDOverlayAmmo(int32 NewVal) {
+//	if (ABlasterHUD* BlasterHUD = GetHUD<ABlasterHUD>()) {
+//		BlasterHUD->SetOverlayAmmo(NewVal);
+//	}
+//}

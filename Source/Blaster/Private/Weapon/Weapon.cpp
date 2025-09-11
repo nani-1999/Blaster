@@ -11,6 +11,10 @@
 #include "Animation/AnimationAsset.h"
 #include "Weapon/Casing.h"
 #include "Engine/SkeletalMeshSocket.h"
+#include "Controller/BlasterPlayerController.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundCue.h"
+#include "UI/BlasterUITypes.h"
 
 #include "Blaster/Nani/NaniUtility.h"
 
@@ -18,7 +22,10 @@ AWeapon::AWeapon() :
 	AimedFOV{ 30.f },
 	FOVInterpSpeed{ 20.f },
 	FireRate{ 0.5f },
-	bIsAutomatic{ false }
+	bIsAutomatic{ false },
+	AmmoCapacity{ 30 },
+	Ammo{ 20 },
+	WeaponType{ EWeaponType::EWT_AssaultRifle }
 {
 	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = true;
@@ -79,6 +86,7 @@ void AWeapon::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeP
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(AWeapon, WeaponState);
+	DOREPLIFETIME(AWeapon, Ammo); 
 }
 
 //
@@ -108,6 +116,7 @@ void AWeapon::ShowPickupWidget(bool bShow) {
 //============================================ Weapon State ============================================
 //
 void AWeapon::UpdateWeaponState() {
+	/* Updates Weapon based on WeaponState */
 	switch (WeaponState) {
 		case EWeaponState::EWS_Equipped:
 			AreaBox->SetCollisionEnabled(ECollisionEnabled::NoCollision); /* this will also triggers end overlap, which sets overlapping weapon to nullptr */
@@ -137,7 +146,8 @@ void AWeapon::PlayFireAnimation() {
 	/* Playing Weapon Fire Animation */
 	if (FireAnimation) WeaponMesh->PlayAnimation(FireAnimation, false);
 
-	/* Spawning Weapon Shell */
+	/* Spawning Weapon Shell 
+	 * Spawning Casing from WeaponMesh Ammo(Shell) Ejection Socket */
 	if (CasingClass) {
 		const USkeletalMeshSocket* AmmoEjectSocket = WeaponMesh->GetSocketByName(FName("AmmoEject"));
 		if (AmmoEjectSocket) {
@@ -145,4 +155,65 @@ void AWeapon::PlayFireAnimation() {
 			GetWorld()->SpawnActor<ACasing>(CasingClass, AmmoEjectSocketTransform);
 		}
 	}
+}
+void AWeapon::PlayFireEmpty() {
+	/* Playing Empty Weapon Sound */
+	if (FireEmptySound) UGameplayStatics::PlaySoundAtLocation(this, FireEmptySound, GetActorLocation());
+}
+
+//
+//============================================ Fire Bullet ============================================
+//
+void AWeapon::FireBullet(const FVector& HitTarget) {
+	/* Happens on Authority */
+
+	/* Decrementing Ammo */
+	Ammo = FMath::Clamp(Ammo - 1, 0, AmmoCapacity);
+
+	/* HUD */
+	if (BlasterPC) BlasterPC->SetHUDOverlayText(EOverlayText::EOT_Ammo, Ammo);
+}
+
+//
+//============================================ HUD ============================================
+//
+void AWeapon::SetOwner(AActor* NewOwner) {
+	Super::SetOwner(NewOwner);
+
+	/* Happens on Authority */
+	NANI_LOG(Warning, "AWeapon | SetOwner");
+
+	/* This is mainly for reducting computation of casting everytime for setting data on HUD */
+
+	DetermineOwnerLocal(NewOwner);
+	//DetermineHUD(NewOwner);
+}
+void AWeapon::OnRep_Owner() {
+	Super::OnRep_Owner();
+
+	//DetermineHUD(Owner);
+	DetermineOwnerLocal(Owner);
+}
+void AWeapon::DetermineOwnerLocal(AActor* NetLocal) {
+	/* classes can only have DetermineOwnerLocal() function if they have anything to do with HUD
+	 * for Weapon, Ammo is the case 
+	 * function code will be difference based on owner type, on weapon's case owner is always a character */
+	if (ACharacter* OwnerChar = Cast<ACharacter>(NetLocal)) {
+		if (ABlasterPlayerController* OwnerCharPC = OwnerChar->GetController<ABlasterPlayerController>()) {
+			if (OwnerCharPC->IsLocalController()) {
+				BlasterPC = OwnerCharPC;
+				return;
+			}
+		}
+	}
+
+	BlasterPC = nullptr;
+}
+
+//
+//============================================ Ammo ============================================
+//
+void AWeapon::OnRep_Ammo() {
+	/* HUD */
+	if (BlasterPC) BlasterPC->SetHUDOverlayText(EOverlayText::EOT_Ammo, Ammo);
 }

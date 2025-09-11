@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/HUD.h"
+#include "UI/BlasterUITypes.h"
 #include "BlasterHUD.generated.h"
 
 class UBlasterOverlay;
@@ -62,7 +63,11 @@ public:
 
 	/* Overlay */
 	void SetupOverlay(APlayerController* Controller);
-	void SetOverlayHealth(float CurrentHealth, float MaxHealth);
-	void SetOverlayScore(float NewScore);
-	void SetOverlayDefeats(int32 NewDefeats);
+	void SetOverlayText(EOverlayText OverlayText, float Value);
+	//void SetOverlayMaxHealth(float NewVal);
+	//void SetOverlayHealth(float NewVal);
+	//void SetOverlayScore(float NewVal);
+	//void SetOverlayDefeats(int32 NewVal);
+	//void SetOverlayAmmoCapacity(int32 NewVal);
+	//void SetOverlayAmmo(int32 NewVal);
 };

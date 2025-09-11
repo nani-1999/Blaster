@@ -4,6 +4,7 @@
 #include "PlayerState/BlasterPlayerState.h"
 #include "Controller/BlasterPlayerController.h"
 #include "Net/UnrealNetwork.h"
+#include "UI/BlasterUITypes.h"
 
 #include "Blaster/Nani/NaniUtility.h"
 
@@ -33,7 +34,7 @@ void ABlasterPlayerState::AddScore(float AddAmount) {
 	 * since the owner of a APlayerState is AController */
 	ABlasterPlayerController* BlasterPC = Cast<ABlasterPlayerController>(GetOwner());
 	if (BlasterPC && BlasterPC->IsLocalController()) {
-		BlasterPC->SetHUDOverlayScore(GetScore());
+		BlasterPC->SetHUDOverlayText(EOverlayText::EOT_Score, GetScore());
 	}
 }
 void ABlasterPlayerState::OnRep_Score() {
@@ -45,7 +46,7 @@ void ABlasterPlayerState::OnRep_Score() {
 	 * so we update our hud there only */
 	ABlasterPlayerController* BlasterPC = Cast<ABlasterPlayerController>(GetOwner());
 	if (BlasterPC && BlasterPC->IsLocalController()) {
-		BlasterPC->SetHUDOverlayScore(GetScore());
+		BlasterPC->SetHUDOverlayText(EOverlayText::EOT_Score, GetScore());
 	}
 }
 
@@ -59,13 +60,13 @@ void ABlasterPlayerState::AddDefeats(int32 AddAmount) {
 	/* HUD's Overlay */
 	ABlasterPlayerController* BlasterPC = Cast<ABlasterPlayerController>(GetOwner());
 	if (BlasterPC && BlasterPC->IsLocalController()) {
-		BlasterPC->SetHUDOverlayDefeats(Defeats);
+		BlasterPC->SetHUDOverlayText(EOverlayText::EOT_Defeats, Defeats);
 	}
 }
 void ABlasterPlayerState::OnRep_Defeats() {
 	/* HUD's Overlay */
 	ABlasterPlayerController* BlasterPC = Cast<ABlasterPlayerController>(GetOwner());
 	if (BlasterPC && BlasterPC->IsLocalController()) {
-		BlasterPC->SetHUDOverlayDefeats(Defeats);
+		BlasterPC->SetHUDOverlayText(EOverlayText::EOT_Defeats, Defeats);
 	}
 }
