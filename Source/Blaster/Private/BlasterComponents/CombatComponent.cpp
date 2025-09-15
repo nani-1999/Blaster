@@ -8,11 +8,12 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Animation/AnimMontage.h"
 #include "Kismet/GameplayStatics.h"
-#include "UI/HUD/BlasterHUD.h"
 #include "Camera/CameraComponent.h"
 #include "Interface/CombatInterface.h"
 #include "Controller/BlasterPlayerController.h" 
+#include "UI/BlasterUITypes.h"
 
+//#include "UI/HUD/BlasterHUD.h"
 #include "Blaster/Nani/NaniUtility.h"
 #include "DrawDebugHelpers.h"
 
@@ -23,50 +24,47 @@ UCombatComponent::UCombatComponent() :
 	InterpedFOV{ BaseFOV },
 	bAllowFire{ true },
 	CarriedAmmo{ 0 }
+	//CombatType{ ECombatType::EWT_UnOccupied }
 {
 	PrimaryComponentTick.bCanEverTick = true;
 
-	AllCarriedAmmo.Add(EWeaponType::EWT_AssaultRifle, 69);
+	/* zero initializing on all machines, but server is the real one */
+	InitAllCarriedAmmo(0);
+
+	OwnerChar = GetOwner<ACharacter>();
 }
 
 void UCombatComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
+	/* Reference */
+	//OwnerChar = GetOwner<ACharacter>();
 }
 
 void UCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	// @DEBUG
-	//ACharacter* CompOwner = GetOwner<ACharacter>();
-	//if (CompOwner && CompOwner->IsLocallyControlled()) {
-	//	FHitResult CursorTraceHit;
-	//	FVector EndPoint;
-	//	TraceUnderCursor(CursorTraceHit, EndPoint);
-	//	DrawDebugSphere(GetWorld(), CursorTraceHit.bBlockingHit ? CursorTraceHit.ImpactPoint : EndPoint, 12.f, 12.f, FColor::Red);
-	//}
-
-	/* Locally Controlled Tick */
-	ACharacter* CompOwner = GetOwner<ACharacter>();
-
-	if (CompOwner && CompOwner->IsLocallyControlled()) {
-		/* equipped specific */
+	if (OwnerChar && BlasterPC) {
 		if (EquippedWeapon) {
+			TraceUnderCursor();
 
-			/* generalizing some variables that are used in multiple function bodies */
-			bool bIsInAir = CompOwner->GetCharacterMovement()->IsFalling();
+			/* HUD Crosshair */
+			UpdateHUDCrosshair(DeltaTime);
 
-			/* Updating HUD Crosshair */
-			UpdateHUDCrosshair(CompOwner, bIsInAir, DeltaTime);
-
-			/* Zoom While Aiming */
-			if (CompOwnerCamera) {
+			/* Camera
+			 * Interping Camera FOV while Aiming */
+			if (OwnerCharCamera) {
 				InterpedFOV = FMath::FInterpTo(InterpedFOV, bAiming ? EquippedWeapon->GetAimedFOV() : BaseFOV, DeltaTime, EquippedWeapon->GetFOVInterpSpeed());
-				CompOwnerCamera->SetFieldOfView(InterpedFOV);
+				OwnerCharCamera->SetFieldOfView(InterpedFOV);
 			}
 		}
+		//else {
+		//	/* HUD Crosshair 
+		//     * removing hud crosshair if we don't have a equipped weapon */
+		//	UpdateHUDCrosshair();
+		//}
 	}
 }
 
@@ -78,18 +76,26 @@ void UCombatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 	DOREPLIFETIME(UCombatComponent, EquippedWeapon);
 	DOREPLIFETIME(UCombatComponent, bAiming);
 	DOREPLIFETIME_CONDITION(UCombatComponent, CarriedAmmo, ELifetimeCondition::COND_OwnerOnly);
-	//DOREPLIFETIME(UCombatComponent, bFiring);
+}
+
+//
+//============================================ References ============================================
+//
+void UCombatComponent::SetReferences() {
+	BlasterPC = OwnerChar->GetController<ABlasterPlayerController>();
+
+	/* HUD's Overlay */
+	BlasterPC->SetHUDOverlayText(EOverlayText::EOT_CarriedAmmo, GetCarriedAmmo());
+	BlasterPC->SetHUDOverlayText(EOverlayText::EOT_Ammo, GetWeaponAmmo());
 }
 
 //
 //============================================ Character Movement ============================================
 //
 void UCombatComponent::SetOrientRotationToMovement(bool bOrient) {
-	ACharacter* CompOwner = GetOwner<ACharacter>();
-	if (CompOwner) {
-		UCharacterMovementComponent* MovementComp = CompOwner->GetCharacterMovement();
-		CompOwner->bUseControllerRotationYaw = !bOrient;
-		MovementComp->bOrientRotationToMovement = bOrient;
+	if (OwnerChar) {
+		OwnerChar->bUseControllerRotationYaw = !bOrient;
+		OwnerChar->GetCharacterMovement()->bOrientRotationToMovement = bOrient;
 	}
 }
 
@@ -102,19 +108,18 @@ void UCombatComponent::EquipWeapon(AWeapon* WeaponToEquip) {
 
 	if (EquippedWeapon) DropWeapon(); // custom
 
-	ACharacter* CompOwner = GetOwner<ACharacter>();
-	if (CompOwner) {
-		bool bRightHandSocket = CompOwner->GetMesh()->DoesSocketExist(FName("RightHandSocket"));
+	if (OwnerChar) {
+		bool bRightHandSocket = OwnerChar->GetMesh()->DoesSocketExist(FName("RightHandSocket"));
 		if (bRightHandSocket) {
 			WeaponToEquip->SetWeaponState(EWeaponState::EWS_Equipped);
 
 			FAttachmentTransformRules AttachmentRules = FAttachmentTransformRules::SnapToTargetNotIncludingScale;
-			bool bAttachmentSuccessful = WeaponToEquip->AttachToComponent(CompOwner->GetMesh(), AttachmentRules, FName("RightHandSocket"));
+			bool bAttachmentSuccessful = WeaponToEquip->AttachToComponent(OwnerChar->GetMesh(), AttachmentRules, FName("RightHandSocket"));
 			
 			if (bAttachmentSuccessful) {
 				EquippedWeapon = WeaponToEquip;
 				SetOrientRotationToMovement(!EquippedWeapon/* ? false : true*/);
-				EquippedWeapon->SetOwner(CompOwner);
+				EquippedWeapon->SetOwner(OwnerChar);
 
 				/* Carried Ammo changed based on Equipped Weapon Type 
 				 * find always since it has all weapon types values */
@@ -125,8 +130,7 @@ void UCombatComponent::EquipWeapon(AWeapon* WeaponToEquip) {
 			//}
 
 			/* HUD's Overlay */
-			if (CompOwner->IsLocallyControlled()) {
-				ABlasterPlayerController* BlasterPC = CompOwner->GetController<ABlasterPlayerController>();
+			if (BlasterPC) {
 				BlasterPC->SetHUDOverlayText(EOverlayText::EOT_CarriedAmmo, CarriedAmmo);
 				BlasterPC->SetHUDOverlayText(EOverlayText::EOT_Ammo, GetWeaponAmmo());
 			}
@@ -137,9 +141,7 @@ void UCombatComponent::OnRep_EquippedWeapon(AWeapon* OldEquippedWeapon) {
 	SetOrientRotationToMovement(EquippedWeapon ? false : true);
 
 	/* HUD's Overlay */
-	ACharacter* CompOwner = GetOwner<ACharacter>();
-	if (CompOwner && CompOwner->IsLocallyControlled()) {
-		ABlasterPlayerController* BlasterPC = CompOwner->GetController<ABlasterPlayerController>();
+	if (BlasterPC) {
 		BlasterPC->SetHUDOverlayText(EOverlayText::EOT_CarriedAmmo, CarriedAmmo);
 		BlasterPC->SetHUDOverlayText(EOverlayText::EOT_Ammo, GetWeaponAmmo());
 	}
@@ -169,9 +171,7 @@ void UCombatComponent::DropWeapon() {
 	CarriedAmmo = 0;
 
 	/* HUD's Overlay */
-	ACharacter* CompOwner = GetOwner<ACharacter>();
-	if (CompOwner && CompOwner->IsLocallyControlled()) {
-		ABlasterPlayerController* BlasterPC = CompOwner->GetController<ABlasterPlayerController>();
+	if (BlasterPC) {
 		BlasterPC->SetHUDOverlayText(EOverlayText::EOT_CarriedAmmo, CarriedAmmo);
 		BlasterPC->SetHUDOverlayText(EOverlayText::EOT_Ammo, GetWeaponAmmo());
 	}
@@ -180,39 +180,25 @@ void UCombatComponent::DropWeapon() {
 //
 //============================================ Socket ============================================
 //
-FTransform UCombatComponent::GetWeaponLeftHandSocketTransform() const {
-	if (EquippedWeapon) return EquippedWeapon->GetLeftHandSocketTransform();
+FTransform UCombatComponent::GetWeaponGripSocket() const {
+	if (EquippedWeapon) return EquippedWeapon->GetGripSocket();
 	return FTransform();
 }
 
 //
 //============================================ Crosshair ============================================
 //
-void UCombatComponent::UpdateHUDCrosshair(ACharacter* CompOwner, bool bIsInAir, float DeltaTime) {
-	//NANI_LOG(Warning, "UpdateHUDCrosshair");
-
-	APlayerController* CompOwnerCtrl = CompOwner->GetController<APlayerController>();
-	if (CompOwnerCtrl == nullptr) return;
-	ABlasterHUD* BlasterHUD = CompOwnerCtrl->GetHUD<ABlasterHUD>();
-	if (BlasterHUD == nullptr) return;
-
-	/* Crosshair Textures */
-	FCrosshairTextures Crosshair;
-	Crosshair.Center = EquippedWeapon->CrosshairCenter;
-	Crosshair.Top = EquippedWeapon->CrosshairTop;
-	Crosshair.Right = EquippedWeapon->CrosshairRight;
-	Crosshair.Bottom = EquippedWeapon->CrosshairBottom;
-	Crosshair.Left = EquippedWeapon->CrosshairLeft;
-
+void UCombatComponent::UpdateHUDCrosshair(float DeltaTime) {
 	/* Crosshair Spread Rate
 	 * calculating all possible crosshair spread factors 
 	 * every each factor is of a rate from 0.f to 1.f */
 	/* surface velocity factor */
 	FVector2D VelocityRange(0.f, BaseWalkSpeed);
 	FVector2D RateRange(0.f, 1.f);
-	float Velocity = CompOwner->GetVelocity().Size2D();
+	float Velocity = OwnerChar->GetVelocity().Size2D();
 	CrosshairSurfaceFactor = FMath::GetMappedRangeValueClamped(VelocityRange, RateRange, Velocity);
 	/* in-air factor */
+	bool bIsInAir = OwnerChar->GetCharacterMovement()->IsFalling();
 	CrosshairInAirFactor = FMath::FInterpTo(CrosshairInAirFactor, bIsInAir ? 1.f : 0.f, DeltaTime, 10.f);
 	/* aiming factor */
 	CrosshairAimFactor = FMath::FInterpTo(CrosshairAimFactor, bAiming ? 0.f : 1.f, DeltaTime, 20.f);
@@ -221,24 +207,18 @@ void UCombatComponent::UpdateHUDCrosshair(ACharacter* CompOwner, bool bIsInAir, 
 
 	/* Crosshair Color  */
 	FLinearColor CrosshairColor;
-	FHitResult CursorTraceHit;
-	FVector CursorEndPoint; /* satisfy, just gets the end point if nothing hits */
-	TraceUnderCursor(CursorTraceHit, CursorEndPoint);
-	ICombatInterface* CombatInterface = Cast<ICombatInterface>(CursorTraceHit.GetActor());
+	ICombatInterface* CombatInterface = Cast<ICombatInterface>(CursorHitResult.GetActor());
 	CrosshairColor = CombatInterface ? FLinearColor::Red : FLinearColor::White;
 
-	BlasterHUD->UpdateCrosshair(Crosshair, SumOfAllFactors, CrosshairColor);
+	BlasterPC->UpdateHUDCrosshair(EquippedWeapon->GetCrosshair(), SumOfAllFactors, CrosshairColor);
 }
 
 //
 //============================================ Walk Speed ============================================
 //
 void UCombatComponent::SetWalkSpeed(float WalkSpeedToSet) {
-	ACharacter* CompOwner = GetOwner<ACharacter>();
-	if (CompOwner) {
-		UCharacterMovementComponent* MovementComp = CompOwner->GetCharacterMovement();
-		MovementComp->MaxWalkSpeed = WalkSpeedToSet;
-	}
+	//ACharacter* CompOwner = GetOwner<ACharacter>();
+	if (OwnerChar) OwnerChar->GetCharacterMovement()->MaxWalkSpeed = WalkSpeedToSet;
 }
 //
 //============================================ Aim ============================================
@@ -256,53 +236,39 @@ void UCombatComponent::OnRep_Aiming(bool OldAiming) {
 //
 //============================================ Montage ============================================
 //
-void UCombatComponent::PlayCharacterFireMontage() {
-	if (EquippedWeapon == nullptr || FireMontage == nullptr) return;
-
-	ACharacter* CompOwner = GetOwner<ACharacter>();
-	if (CompOwner) {
-		UAnimInstance* AnimInst = CompOwner->GetMesh()->GetAnimInstance();
-		AnimInst->Montage_Play(FireMontage);
-
-		FString WeaponType = FString("AssaultRifle");
-		WeaponType += bAiming ? FString("Ironsight") : FString("Hip");
-		AnimInst->Montage_JumpToSection(*WeaponType);
-
+void UCombatComponent::PlayCharacterMontage(UAnimMontage* MontageToPlay, FName SectionName) {
+	if (MontageToPlay && OwnerChar) {
+		UAnimInstance* AnimInst = OwnerChar->GetMesh()->GetAnimInstance();
+		AnimInst->Montage_Play(MontageToPlay);
+		AnimInst->Montage_JumpToSection(SectionName);
 	}
 }
 
 //
 //============================================ HitScane ============================================
 //
-void UCombatComponent::TraceUnderCursor(FHitResult& OutHitResult, FVector& CursorEndPosition, float TraceLength, bool bOffset) {
-
-	/* this is just to get a hit target, nothing to do with weapon */
-
+void UCombatComponent::TraceUnderCursor(float TraceLength, bool bOffset) {
 	FVector2D ViewportSize;
 	if (GEngine == nullptr || GEngine->GameViewport == nullptr) return;
 	GEngine->GameViewport->GetViewportSize(ViewportSize);
 	FVector2D ViewportCenter = ViewportSize / 2.f;
 
-	ACharacter* CompOwner = GetOwner<ACharacter>();
-	if (CompOwner == nullptr) return;
-	APlayerController* PC = nullptr;
-	PC = CompOwner->GetController<APlayerController>();
-	if (PC == nullptr)  return; /* this is a client failed, for simulated proxies, since they don't have controller nor viewport */
-
 	/* Screen To World */
 	FVector CursorWorldPosition;
 	FVector CursorWorldDirection;
-	bool bProjectionSuccessful = UGameplayStatics::DeprojectScreenToWorld(PC, ViewportCenter, CursorWorldPosition, CursorWorldDirection);
+	bool bProjectionSuccessful = UGameplayStatics::DeprojectScreenToWorld(BlasterPC, ViewportCenter, CursorWorldPosition, CursorWorldDirection);
 	if (!bProjectionSuccessful) return; /* this is a server failed, for non-owning authoritative characters, since they have controller but no viewport */
-	/* Start Point
-	 * since there are issuses like blocking itself and actors behind, so we need to offset some distance towards */
-	float OffsetDistance = (CursorWorldPosition - CompOwner->GetActorLocation()).Size() + 100.f;  /* here we are offsetting distance from screen to character location + 100.f more */
+	
+	/* since there are issuses like blocking itself or actors behind, so we need to offset some distance towards */
+	float OffsetDistance = (CursorWorldPosition - OwnerChar->GetActorLocation()).Size() + 100.f;  /* here we are offsetting distance from screen to character location + 100.f more */
+
+	/* Start Point */
 	FVector CursorStartPosition = CursorWorldPosition + OffsetDistance * CursorWorldDirection;
 	/* End Point */
 	CursorEndPosition = CursorWorldPosition + TraceLength * CursorWorldDirection;
 
 	/* Line Trace */
-	if (UWorld* World = GetWorld()) World->LineTraceSingleByChannel(OutHitResult, bOffset ? CursorStartPosition : CursorWorldPosition, CursorEndPosition, ECollisionChannel::ECC_Visibility);
+	GetWorld()->LineTraceSingleByChannel(CursorHitResult, bOffset ? CursorStartPosition : CursorWorldPosition, CursorEndPosition, ECollisionChannel::ECC_Visibility);
 }
 
 //
@@ -328,17 +294,12 @@ void UCombatComponent::SetFiring(bool bPressed) {
 void UCombatComponent::FireWeapon() {
 	bAllowFire = false;
 
-	/* Local */
-	FHitResult CursorTraceHit;
-	FVector CursorEndPoint;
-	TraceUnderCursor(CursorTraceHit, CursorEndPoint);
-
 	/* only server needs to know about hittarget,
 	 * local client or non owning client does not need to know hittarget or we bother sending hittarget
 	 * this is to reduce bandwidth
 	 * we just locally sends hittarget to server and server send nothing to all clients
 	 * !note this is not always the case for some type of weapons */
-	ServerFire(CursorTraceHit.bBlockingHit ? CursorTraceHit.ImpactPoint : CursorEndPoint);
+	ServerFire(CursorHitResult.bBlockingHit ? CursorHitResult.ImpactPoint : CursorEndPosition);
 
 	/* doing Timer Locally */
 	GetWorld()->GetTimerManager().SetTimer(AllowFireTimerHandle, this, &UCombatComponent::AllowFire, EquippedWeapon->GetFireRate());
@@ -377,7 +338,10 @@ void UCombatComponent::ServerFire_Implementation(const FVector_NetQuantize HitTa
 void UCombatComponent::MulticastFire_Implementation() {
 	if (EquippedWeapon == nullptr) return;
 
-	PlayCharacterFireMontage();
+	FString WeaponTypeStr = FString("AssaultRifle");
+	WeaponTypeStr += bAiming ? FString("Ironsight") : FString("Hip");
+	PlayCharacterMontage(FireMontage, *WeaponTypeStr);
+
 	EquippedWeapon->PlayFireAnimation();
 }
 
@@ -395,21 +359,48 @@ void UCombatComponent::MulticastFireEmpty_Implementation() {
 //
 //============================================ Ammo ============================================
 //
+void UCombatComponent::InitAllCarriedAmmo(int InitVal) {
+	/* auto sets all carried ammo of all weapon types */
+	for (int i = 0; i < (int)EWeaponType::EWT_MAX; i++) {
+		AllCarriedAmmo.Add((EWeaponType)i, InitVal);
+	}
+}
 //int32 UCombatComponent::GetWeaponAmmoCapacity() const {
 //	return EquippedWeapon == nullptr ? 0 : EquippedWeapon->GetAmmoCapacity();
 //}
 int32 UCombatComponent::GetWeaponAmmo() const {
-	return EquippedWeapon == nullptr ? 0 : EquippedWeapon->GetAmmo();
+	return EquippedWeapon ? EquippedWeapon->GetAmmo() : 0;
 }
 
 void UCombatComponent::OnRep_CarriedAmmo() {
 	NANI_LOG(Warning, "OnRep_CarriedAmmo");
 
-	if (ACharacter* CompOwner = GetOwner<ACharacter>()) {
-		if (ABlasterPlayerController* CompOwnerPC = CompOwner->GetController<ABlasterPlayerController>()) {
-			if (CompOwnerPC->IsLocalController()) {
-				CompOwnerPC->SetHUDOverlayText(EOverlayText::EOT_CarriedAmmo, CarriedAmmo);
-			}
-		}
-	}
+	if (BlasterPC) BlasterPC->SetHUDOverlayText(EOverlayText::EOT_CarriedAmmo, CarriedAmmo);
 }
+
+//
+//============================================ Combat ============================================
+//
+//void UCombatComponent::OnRep_CombatType() {
+//	//if (CombatType)
+//}
+
+//
+//============================================ Reload ============================================
+//
+//void UCombatComponent::ServerReloadPressed_Implementation() {
+//	if (EquippedWeapon == nullptr) return;
+//	
+//	/* we only reload if combat type is unoccupied */
+//	if (CombatType != ECombatType::UnOccupied) return;
+//
+//	CombatType = ECombatType::EWT_Reloading;
+//
+//	GetWorldTimerManager().SetTimer(ReloadTimer, this, &UCombatComponent::ReloadFinished, EquippedWeapon->GetReloadTime());
+//
+//	/* Playing Character Reload Animation */
+//	PlayCharacterMontage(ReloadMontage, *EquippedWeapon->GetWeaponTypeStr());
+//}
+//void UCombatComponent::ReloadFinished() {
+//	CombatType = ECombatType::EWT_UnOccupied;
+//}

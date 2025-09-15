@@ -9,31 +9,12 @@
 
 class UBlasterOverlay;
 
-USTRUCT()
-struct FCrosshairTextures {
-
-	GENERATED_BODY()
-
-	UPROPERTY()
-	TObjectPtr<UTexture2D> Center;
-	UPROPERTY()
-	TObjectPtr<UTexture2D> Top;
-	UPROPERTY()
-	TObjectPtr<UTexture2D> Right;
-	UPROPERTY()
-	TObjectPtr<UTexture2D> Bottom;
-	UPROPERTY()
-	TObjectPtr<UTexture2D> Left;
-};
-
 UCLASS()
 class BLASTER_API ABlasterHUD : public AHUD
 {
 	GENERATED_BODY()
 	
 protected:
-	virtual void BeginPlay() override;
-
 	/* Crosshair */
 	FCrosshairTextures Crosshair;
 
@@ -50,8 +31,11 @@ protected:
 	TSubclassOf<UBlasterOverlay> OverlayClass;
 	UPROPERTY()
 	TObjectPtr<UBlasterOverlay> Overlay;
+	void InitOverlay(APlayerController* Controller);
 
 public:
+	virtual void SetOwner(AActor* NewOwner) override;
+
 	virtual void DrawHUD() override;
 
 	/* Crosshair */
@@ -62,12 +46,5 @@ public:
 	}
 
 	/* Overlay */
-	void SetupOverlay(APlayerController* Controller);
 	void SetOverlayText(EOverlayText OverlayText, float Value);
-	//void SetOverlayMaxHealth(float NewVal);
-	//void SetOverlayHealth(float NewVal);
-	//void SetOverlayScore(float NewVal);
-	//void SetOverlayDefeats(int32 NewVal);
-	//void SetOverlayAmmoCapacity(int32 NewVal);
-	//void SetOverlayAmmo(int32 NewVal);
 };

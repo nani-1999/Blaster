@@ -4,7 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "Weapon/WeaponTypes.h"
+#include "WeaponTypes.h"
+#include "UI/BlasterUITypes.h"
 #include "Weapon.generated.h"
 
 class USkeletalMeshComponent;
@@ -58,6 +59,10 @@ protected:
 	UFUNCTION()
 	void AreaBoxEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
+	/* Crosshair */
+	UPROPERTY(EditDefaultsOnly)
+	FCrosshairTextures Crosshair;
+
 	/* Pickup Widget */
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UWidgetComponent> PickupWidget;
@@ -101,6 +106,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly)
 	EWeaponType WeaponType;
 
+	/* Reload */
+	float ReloadTime;
+
 	/* HUD */
 	ABlasterPlayerController* BlasterPC;
 	void DetermineOwnerLocal(AActor* NetLocal);
@@ -114,7 +122,7 @@ public:
 	void SetWeaponState(EWeaponState State) { WeaponState = State; UpdateWeaponState(); }
 
 	/* Socket */
-	FTransform GetLeftHandSocketTransform() const;
+	FTransform GetGripSocket() const;
 
 	/* Fire Bullet */
 	virtual void FireBullet(const FVector& HitTarget);
@@ -124,16 +132,17 @@ public:
 	void PlayFireEmpty();
 
 	/* Crosshair */
-	UPROPERTY(EditDefaultsOnly)
-	TObjectPtr<UTexture2D> CrosshairCenter;
-	UPROPERTY(EditDefaultsOnly)
-	TObjectPtr<UTexture2D> CrosshairTop;
-	UPROPERTY(EditDefaultsOnly)
-	TObjectPtr<UTexture2D> CrosshairRight;
-	UPROPERTY(EditDefaultsOnly)
-	TObjectPtr<UTexture2D> CrosshairBottom;
-	UPROPERTY(EditDefaultsOnly)
-	TObjectPtr<UTexture2D> CrosshairLeft;
+	FCrosshairTextures& GetCrosshair() { return Crosshair; }
+	//UPROPERTY(EditDefaultsOnly)
+	//TObjectPtr<UTexture2D> CrosshairCenter;
+	//UPROPERTY(EditDefaultsOnly)
+	//TObjectPtr<UTexture2D> CrosshairTop;
+	//UPROPERTY(EditDefaultsOnly)
+	//TObjectPtr<UTexture2D> CrosshairRight;
+	//UPROPERTY(EditDefaultsOnly)
+	//TObjectPtr<UTexture2D> CrosshairBottom;
+	//UPROPERTY(EditDefaultsOnly)
+	//TObjectPtr<UTexture2D> CrosshairLeft;
 
 	/* Field Of View */
 	FORCEINLINE float GetAimedFOV() const { return AimedFOV; }
@@ -149,6 +158,9 @@ public:
 
 	/* Weapon Type */
 	FORCEINLINE EWeaponType GetWeaponType() const { return WeaponType; }
+
+	/* Reload */
+	FORCEINLINE float GetReloadTime() const { return ReloadTime; }
 
 	/* HUD */
 	virtual void SetOwner(AActor* NewOwner) override;

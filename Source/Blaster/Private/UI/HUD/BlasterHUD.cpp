@@ -6,9 +6,11 @@
 
 #include "Blaster/Nani/NaniUtility.h"
 
-void ABlasterHUD::BeginPlay() {
-	Super::BeginPlay();
+void ABlasterHUD::SetOwner(AActor* NewOwner) {
+	Super::SetOwner(NewOwner);
 
+	/* after lots of trial and errors from different classes, there is where its safe to built overlay */
+	InitOverlay(GetOwner<APlayerController>()); /* a hud's owner is always a controller */
 }
 
 void ABlasterHUD::DrawHUD() {
@@ -47,7 +49,7 @@ void ABlasterHUD::DrawCrosshair(FVector2D DrawLoc) {
 //
 //============================================ Overlay ============================================
 //
-void ABlasterHUD::SetupOverlay(APlayerController* Controller) {
+void ABlasterHUD::InitOverlay(APlayerController* Controller) {
 	if (OverlayClass && Controller) {
 		Overlay = CreateWidget<UBlasterOverlay>(Controller, OverlayClass, FName("BlasterOverlay"));
 		if (Overlay) {
@@ -59,22 +61,3 @@ void ABlasterHUD::SetupOverlay(APlayerController* Controller) {
 void ABlasterHUD::SetOverlayText(EOverlayText TextWidget, float Value) {
 	if (Overlay) Overlay->SetText(TextWidget, Value);
 }
-//void ABlasterHUD::SetOverlayMaxHealth(float NewVal) {
-//	/* all these shitty functions because i don't know how to access EOverlayText enum class here */
-//	if (Overlay) Overlay->SetText(EOverlayText::EOT_MaxHealth, NewVal);
-//}
-//void ABlasterHUD::SetOverlayHealth(float NewVal) {
-//	if (Overlay) Overlay->SetText(EOverlayText::EOT_Health, NewVal);
-//}
-//void ABlasterHUD::SetOverlayScore(float NewVal) {
-//	if (Overlay) Overlay->SetText(EOverlayText::EOT_Score, NewVal);
-//}
-//void ABlasterHUD::SetOverlayDefeats(int32 NewVal) {
-//	if (Overlay) Overlay->SetText(EOverlayText::EOT_Defeats, NewVal);
-//}
-//void ABlasterHUD::SetOverlayAmmo(int32 NewVal) {
-//	if (Overlay) Overlay->SetText(EOverlayText::EOT_Ammo, NewVal);
-//}
-//void ABlasterHUD::SetOverlayAmmoCapacity(int32 NewVal) {
-//	if (Overlay) Overlay->SetText(EOverlayText::EOT_AmmoCapacity, NewVal);
-//}

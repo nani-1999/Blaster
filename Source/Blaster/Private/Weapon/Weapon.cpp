@@ -25,7 +25,8 @@ AWeapon::AWeapon() :
 	bIsAutomatic{ false },
 	AmmoCapacity{ 30 },
 	Ammo{ 20 },
-	WeaponType{ EWeaponType::EWT_AssaultRifle }
+	WeaponType{ EWeaponType::EWT_AssaultRifle },
+	ReloadTime{ 2.f }
 {
 	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = true;
@@ -135,8 +136,9 @@ void AWeapon::UpdateWeaponState() {
 //
 //============================================ Socket ============================================
 //
-FTransform AWeapon::GetLeftHandSocketTransform() const {
-	return WeaponMesh->GetSocketTransform(FName("LeftHandSocket")); /* getting world space by default */
+FTransform AWeapon::GetGripSocket() const {
+	/* One is Grip and Another One is Wrist */
+	return WeaponMesh->GetSocketTransform(FName("Grip")); /* getting world space by default */
 }
 
 //
@@ -186,12 +188,10 @@ void AWeapon::SetOwner(AActor* NewOwner) {
 	/* This is mainly for reducting computation of casting everytime for setting data on HUD */
 
 	DetermineOwnerLocal(NewOwner);
-	//DetermineHUD(NewOwner);
 }
 void AWeapon::OnRep_Owner() {
 	Super::OnRep_Owner();
 
-	//DetermineHUD(Owner);
 	DetermineOwnerLocal(Owner);
 }
 void AWeapon::DetermineOwnerLocal(AActor* NetLocal) {

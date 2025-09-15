@@ -16,6 +16,7 @@ class UCombatComponent;
 class UParticleSystem;
 class USoundCue;
 //class UMaterialInstance;
+class ABlasterPlayerController;
 
 UCLASS()
 class BLASTER_API ABlasterCharacter : public ACharacter, public ICombatInterface
@@ -73,6 +74,9 @@ protected:
 	void AimReleased();
 	UFUNCTION(Server, Reliable)
 	void ServerAimReleased();
+
+	UFUNCTION()
+	void ReloadPressed();
 
 	/* Test */
 	UFUNCTION()
@@ -159,10 +163,21 @@ protected:
 	UFUNCTION()
 	void UpdateDissolveMaterial(float Value);
 
+	/* References 
+	 * one time set references 
+	 * this is primarly to reduce computation load, usually Cast<>() is the main culprit for heavy computation load, not getters
+	 * these are raw references
+	 * these references must only be 'has a' references, not references of like gamemode or world
+	 * these references are used within 'this' class only, so they are in protected section */
+	/* Local 
+	 * if BlasterPC exist then this Char is Locally Controlled
+	 * mostly used for HUD */
+	ABlasterPlayerController* BlasterPC = nullptr;
+
 public:
 	/* Weapon */
 	void SetOverlappingWeapon(AWeapon* WeaponToSet);
-	FTransform GetWeaponLeftHandSocketTransform() const;
+	FTransform GetWeaponGripSocket() const;
 
 	/* Elimination */
 	void Eliminated();

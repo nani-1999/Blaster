@@ -5,11 +5,13 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Weapon/WeaponTypes.h"
+//#include "CombatTypes.h"
 #include "CombatComponent.generated.h"
 
 class AWeapon;
 class UAnimMontage;
 class UCameraComponent;
+class ABlasterPlayerController;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class BLASTER_API UCombatComponent : public UActorComponent
@@ -49,7 +51,7 @@ protected:
 	void OnRep_Aiming(bool OldAiming);
 
 	/* Crosshair */
-	void UpdateHUDCrosshair(ACharacter* CompOwner, bool bIsInAir, float DeltaTime);
+	void UpdateHUDCrosshair(float DeltaTime);
 	float CrosshairSurfaceFactor;
 	float CrosshairInAirFactor;
 	float CrosshairAimFactor;
@@ -58,48 +60,63 @@ protected:
 	UPROPERTY(EditDefaultsOnly)
 	float BaseFOV;
 	float InterpedFOV;
-	UCameraComponent* CompOwnerCamera; /* just using raw ptr since comp having other actor's comp is weird */
+	UCameraComponent* OwnerCharCamera; /* just using raw ptr since comp having other actor's comp is weird */
 
 	/* HitScan */
-	void TraceUnderCursor(FHitResult& OutHitResult, FVector& EndPoint, float TraceLength = 5000.f, bool bOffset = true);
+	FHitResult CursorHitResult;
+	FVector CursorEndPosition;
+	void TraceUnderCursor(float TraceLength = 5000.f, bool bOffset = true);
+
+	/* Montage */
+	void PlayCharacterMontage(UAnimMontage* MontageToPlay, FName SectionName);
 
 	/* Fire */
 	bool bFirePressed; /* Fire Buttom Pressed */
 	void FireWeapon();
-
 	UFUNCTION(Server, Reliable)
 	void ServerFire(const FVector_NetQuantize HitTarget);
 	UFUNCTION(NetMulticast, Unreliable)
 	void MulticastFire();
-
 	UFUNCTION(Server, Unreliable)
 	void ServerFireEmpty();
 	UFUNCTION(NetMulticast, Unreliable)
 	void MulticastFireEmpty();
-
 	/* Fire Timers */
 	bool bAllowFire;
 	FTimerHandle AllowFireTimerHandle;
 	void AllowFire();
-
-	//bool CanFire();
-
-	/* Montage */
+	/* Fire Montage */
 	UPROPERTY(EditDefaultsOnly)
 	TObjectPtr<UAnimMontage> FireMontage;
 	void PlayCharacterFireMontage();
 
 	/* Ammo */
+	UPROPERTY()
 	TMap<EWeaponType, int32> AllCarriedAmmo; /* Carried Ammo of All Weapon Types */
+	void InitAllCarriedAmmo(int InitVal);
 	UPROPERTY(ReplicatedUsing = OnRep_CarriedAmmo)
 	int32 CarriedAmmo; /* Carried Ammo of Equipped Weapon Type */
 	UFUNCTION()
 	void OnRep_CarriedAmmo();
 
+	/* Combat */
+	//UPROPERTY(ReplicatedUsing = OnRep_CombatType)
+	//ECombatType CombatType;
+	//UFUNCTION()
+	//void OnRep_CombatType();
+
+	/* Reload Timer */
+	//FTimerHandle ReloadTimer;
+	//void ReloadFinished();
+
+	/* References */
+	ACharacter* OwnerChar = nullptr;
+	ABlasterPlayerController* BlasterPC = nullptr;
+
 public:
 	/* Weapon */
 	void EquipWeapon(AWeapon* WeaponToEquip);
-	FTransform GetWeaponLeftHandSocketTransform() const;
+	FTransform GetWeaponGripSocket() const;
 	void DropWeapon();
 
 	/* Getters */
@@ -111,7 +128,7 @@ public:
 	/* Ammo */
 	//int32 GetWeaponAmmoCapacity() const;
 	int32 GetWeaponAmmo() const;
-	FORCEINLINE int32 GetCarriedAmmo() const { return EquippedWeapon == nullptr ? 0 : CarriedAmmo; }
+	FORCEINLINE int32 GetCarriedAmmo() const { return EquippedWeapon ? CarriedAmmo : 0; }
 
 	/* Aim */
 	void SetAiming(bool bIsAiming);
@@ -120,5 +137,15 @@ public:
 	void SetFiring(bool bPressed);
 
 	/* Field Of View */
-	FORCEINLINE void SetCamera(UCameraComponent* Camera) { CompOwnerCamera = Camera; }
+	FORCEINLINE void SetCamera(UCameraComponent* Camera) { OwnerCharCamera = Camera; }
+
+	/* Combat */
+	//FORCEINLINE ECombatType GetCombatType() const { return CombatType; }
+
+	/* Reload */
+	//UFUNCTION(Server, Reliable)
+	//void ServerReloadPressed();
+
+	/* References */
+	void SetReferences();
 };

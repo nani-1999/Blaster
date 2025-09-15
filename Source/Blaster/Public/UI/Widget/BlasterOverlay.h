@@ -43,10 +43,5 @@ protected:
 	TObjectPtr<UTextBlock> CarriedAmmoText;
 
 public:
-	//void SetHealth(int32 CurrentHealth, float MaxHealth);
-	//void SetScore(int32 NewScore);
-	//void SetDefeats(int32 NewDefeats);
-	//void SetAmmo(int32 NewAmmo);
-
 	void SetText(EOverlayText TextWidget, float Value);
 };
