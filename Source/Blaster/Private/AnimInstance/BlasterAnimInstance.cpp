@@ -48,7 +48,7 @@ float FindOppositeAngle(float angle) {
 void UBlasterAnimInstance::NativeInitializeAnimation() {
 	Super::NativeInitializeAnimation();
 	
-	ABlasterCharacter* BlasterCharacter = Cast<ABlasterCharacter>(TryGetPawnOwner());
+	BlasterCharacter = Cast<ABlasterCharacter>(TryGetPawnOwner());
 	
 	if (BlasterCharacter) {
 		FRotator BaseAimRot = BlasterCharacter->GetBaseAimRotation();
@@ -62,7 +62,7 @@ void UBlasterAnimInstance::NativeInitializeAnimation() {
 void UBlasterAnimInstance::NativeUpdateAnimation(float DeltaSeconds) {
 	Super::NativeUpdateAnimation(DeltaSeconds);
 
-	ABlasterCharacter* BlasterCharacter = Cast<ABlasterCharacter>(TryGetPawnOwner());
+	BlasterCharacter = BlasterCharacter ? BlasterCharacter : Cast<ABlasterCharacter>(TryGetPawnOwner());
 
 	if (BlasterCharacter) {
 		FVector Velocity3D = BlasterCharacter->GetVelocity();
@@ -124,5 +124,8 @@ void UBlasterAnimInstance::NativeUpdateAnimation(float DeltaSeconds) {
 
 		/* Elimination */
 		bEliminated = BlasterCharacter->IsEliminated();
+
+		/* CombatState */
+		CombatState = BlasterCharacter->GetCombatState();
 	}
 }

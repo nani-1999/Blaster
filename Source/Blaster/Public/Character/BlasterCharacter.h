@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Interface/CombatInterface.h"
+#include "BlasterComponents/CombatTypes.h"
 #include "BlasterCharacter.generated.h"
 
 class USpringArmComponent;
@@ -189,4 +190,5 @@ public:
 	FORCEINLINE AWeapon* GetOverlappingWeapon() const { return OverlappingWeapon; }
 	bool IsWeaponEquipped();
 	bool IsAiming();
+	ECombatState GetCombatState() const;
 };

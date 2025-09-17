@@ -12,20 +12,14 @@ enum class EWeaponType : uint8 {
 	EWT_MAX /* max is actually used to get the size of enum */
 };
 
-//namespace EWeaponType
-//{
-//	enum Type
-//	{
-//		AssaultRifle,
-//		MAX
-//	};
-//
-//	inline const TCHAR* ToString(EWeaponType::Type WeaponType)
-//	{
-//		switch (WeaponType)
-//		{
-//			case AssaultRifle: return TEXT("AssaultRifle");
-//			case MAX: return TEXT("MAX");
-//		};
-//	}
-//}
+namespace EWeaponTypeStr
+{
+	/* enums doesn't support namespaces if we are creating class variables */
+	inline const TCHAR* ToString(EWeaponType WeaponType)
+	{
+		switch (WeaponType) {
+			case EWeaponType::EWT_AssaultRifle: return TEXT("AssaultRifle");
+			default: return TEXT("MAX");
+		};
+	}
+}

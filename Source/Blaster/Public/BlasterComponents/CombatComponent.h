@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Weapon/WeaponTypes.h"
-//#include "CombatTypes.h"
+#include "CombatTypes.h"
 #include "CombatComponent.generated.h"
 
 class AWeapon;
@@ -88,7 +88,7 @@ protected:
 	/* Fire Montage */
 	UPROPERTY(EditDefaultsOnly)
 	TObjectPtr<UAnimMontage> FireMontage;
-	void PlayCharacterFireMontage();
+	//void PlayCharacterFireMontage();
 
 	/* Ammo */
 	UPROPERTY()
@@ -99,15 +99,18 @@ protected:
 	UFUNCTION()
 	void OnRep_CarriedAmmo();
 
-	/* Combat */
-	//UPROPERTY(ReplicatedUsing = OnRep_CombatType)
-	//ECombatType CombatType;
-	//UFUNCTION()
-	//void OnRep_CombatType();
+	/* Combat Type */
+	UPROPERTY(ReplicatedUsing = OnRep_CombatState)
+	ECombatState CombatState;
+	UFUNCTION()
+	void OnRep_CombatState();
 
+	/* Reload */
+	UPROPERTY(EditDefaultsOnly)
+	TObjectPtr<UAnimMontage> ReloadMontage;
 	/* Reload Timer */
-	//FTimerHandle ReloadTimer;
-	//void ReloadFinished();
+	FTimerHandle ReloadTimer;
+	void ReloadFinished();
 
 	/* References */
 	ACharacter* OwnerChar = nullptr;
@@ -140,11 +143,11 @@ public:
 	FORCEINLINE void SetCamera(UCameraComponent* Camera) { OwnerCharCamera = Camera; }
 
 	/* Combat */
-	//FORCEINLINE ECombatType GetCombatType() const { return CombatType; }
+	FORCEINLINE ECombatState GetCombatState() const { return CombatState; }
 
 	/* Reload */
-	//UFUNCTION(Server, Reliable)
-	//void ServerReloadPressed();
+	UFUNCTION(Server, Reliable)
+	void ServerReload();
 
 	/* References */
 	void SetReferences();

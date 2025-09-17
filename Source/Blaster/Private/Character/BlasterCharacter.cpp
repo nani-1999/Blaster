@@ -289,6 +289,7 @@ void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	PlayerInputComponent->BindAction("Aim", EInputEvent::IE_Released, this, &ABlasterCharacter::AimReleased);
 	PlayerInputComponent->BindAction("Fire", EInputEvent::IE_Pressed, this, &ABlasterCharacter::FirePressed);
 	PlayerInputComponent->BindAction("Fire", EInputEvent::IE_Released, this, &ABlasterCharacter::FireReleased);
+	PlayerInputComponent->BindAction("Reload", EInputEvent::IE_Pressed, this, &ABlasterCharacter::ReloadPressed);
 
 	PlayerInputComponent->BindAction("Test", EInputEvent::IE_Pressed, this, &ABlasterCharacter::TestPressed);
 }
@@ -380,7 +381,7 @@ void ABlasterCharacter::FireReleased() {
 
 void ABlasterCharacter::ReloadPressed() {
 	NANI_LOG(Warning, "ReloadPressed");
-	//if (Combat) Combat->ServerReloadPressed();
+	if (Combat) Combat->ServerReload();
 }
 
 //
@@ -542,4 +543,7 @@ bool ABlasterCharacter::IsWeaponEquipped() {
 }
 bool ABlasterCharacter::IsAiming() {
 	return (Combat && Combat->IsAiming());
+}
+ECombatState ABlasterCharacter::GetCombatState() const {
+	return Combat ? Combat->GetCombatState() : ECombatState::ECS_MAX;
 }

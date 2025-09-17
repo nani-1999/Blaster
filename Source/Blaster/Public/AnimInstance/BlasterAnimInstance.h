@@ -4,13 +4,20 @@
 
 #include "CoreMinimal.h"
 #include "Animation/AnimInstance.h"
+#include "BlasterComponents/CombatTypes.h"
 #include "BlasterAnimInstance.generated.h"
+
+class ABlasterCharacter;
 
 UCLASS()
 class BLASTER_API UBlasterAnimInstance : public UAnimInstance
 {
 	GENERATED_BODY()
 	
+protected:
+	/* References */
+	ABlasterCharacter* BlasterCharacter = nullptr;
+
 public:
 	virtual void NativeInitializeAnimation() override;
 
@@ -75,4 +82,8 @@ public:
 	/* Elimination */
 	UPROPERTY(BlueprintReadOnly)
 	bool bEliminated;
+
+	/* Combat State */
+	UPROPERTY(BlueprintReadOnly)
+	ECombatState CombatState;
 };

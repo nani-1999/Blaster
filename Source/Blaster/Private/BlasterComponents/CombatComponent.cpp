@@ -23,8 +23,8 @@ UCombatComponent::UCombatComponent() :
 	BaseFOV{ 90.f },
 	InterpedFOV{ BaseFOV },
 	bAllowFire{ true },
-	CarriedAmmo{ 0 }
-	//CombatType{ ECombatType::EWT_UnOccupied }
+	CarriedAmmo{ 0 },
+	CombatState{ ECombatState::ECS_UnOccupied }
 {
 	PrimaryComponentTick.bCanEverTick = true;
 
@@ -76,6 +76,7 @@ void UCombatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 	DOREPLIFETIME(UCombatComponent, EquippedWeapon);
 	DOREPLIFETIME(UCombatComponent, bAiming);
 	DOREPLIFETIME_CONDITION(UCombatComponent, CarriedAmmo, ELifetimeCondition::COND_OwnerOnly);
+	DOREPLIFETIME(UCombatComponent, CombatState);
 }
 
 //
@@ -279,7 +280,7 @@ void UCombatComponent::SetFiring(bool bPressed) {
 
 	bFirePressed = bPressed; /* FireButtonPressed */
 
-	if (bFirePressed && bAllowFire) {
+	if (bFirePressed && bAllowFire && (CombatState == ECombatState::ECS_UnOccupied)) {
 		if (EquippedWeapon->GetAmmo() > 0) {
 			FireWeapon();
 		}
@@ -288,6 +289,7 @@ void UCombatComponent::SetFiring(bool bPressed) {
 			 * we don't brrrrrrrrrr and kek at end 
 			 * remember there will be a slight delay, since we server and from there multicasting */
 			ServerFireEmpty();
+			ServerReload();
 		}
 	}
 }
@@ -295,7 +297,7 @@ void UCombatComponent::FireWeapon() {
 	bAllowFire = false;
 
 	/* only server needs to know about hittarget,
-	 * local client or non owning client does not need to know hittarget or we bother sending hittarget
+	 * local client or non owning client does not need to know hittarget or we bother sending hittarget, so ServerFIre
 	 * this is to reduce bandwidth
 	 * we just locally sends hittarget to server and server send nothing to all clients
 	 * !note this is not always the case for some type of weapons */
@@ -308,24 +310,25 @@ void UCombatComponent::AllowFire() {
 	bAllowFire = true;
 
 	/* checking to see if we still pressed fire button and also is weapon automatic */
-	if (bFirePressed && EquippedWeapon->IsAutomatic() && (EquippedWeapon->GetAmmo() > 0)) FireWeapon();
+	//if (bFirePressed && EquippedWeapon->IsAutomatic() && (EquippedWeapon->GetAmmo() > 0)) FireWeapon();
 
 	/* use this instead if you want to brrrrrrr and kek at the end */
-	//if (bFirePressed && EquippedWeapon->IsAutomatic()) {
-	//	if (EquippedWeapon->GetAmmo() > 0) {
-	//		FireWeapon();
-	//	}
-	//	else {
-	//		ServerFireEmpty();
-	//	}
-	//}
+	if (bFirePressed && EquippedWeapon->IsAutomatic() && (CombatState == ECombatState::ECS_UnOccupied)) {
+		if (EquippedWeapon->GetAmmo() > 0) {
+			FireWeapon();
+		}
+		else {
+			ServerFireEmpty();
+			ServerReload();
+		}
+	}
 }
 
 void UCombatComponent::ServerFire_Implementation(const FVector_NetQuantize HitTarget) {
-	if (EquippedWeapon == nullptr) return;
+	if (EquippedWeapon == nullptr || EquippedWeapon->GetAmmo() < 1 || CombatState != ECombatState::ECS_UnOccupied) return;
 	
 	/* ammo check on server too, to prevent cheating */
-	if (EquippedWeapon->GetAmmo() <= 0) return;
+	//if (EquippedWeapon->GetAmmo() <= 0) return;
 
 	/* firing bullet only on server */
 	EquippedWeapon->FireBullet(HitTarget);
@@ -338,7 +341,7 @@ void UCombatComponent::ServerFire_Implementation(const FVector_NetQuantize HitTa
 void UCombatComponent::MulticastFire_Implementation() {
 	if (EquippedWeapon == nullptr) return;
 
-	FString WeaponTypeStr = FString("AssaultRifle");
+	FString WeaponTypeStr = EWeaponTypeStr::ToString(EquippedWeapon->GetWeaponType());
 	WeaponTypeStr += bAiming ? FString("Ironsight") : FString("Hip");
 	PlayCharacterMontage(FireMontage, *WeaponTypeStr);
 
@@ -373,34 +376,51 @@ int32 UCombatComponent::GetWeaponAmmo() const {
 }
 
 void UCombatComponent::OnRep_CarriedAmmo() {
-	NANI_LOG(Warning, "OnRep_CarriedAmmo");
-
 	if (BlasterPC) BlasterPC->SetHUDOverlayText(EOverlayText::EOT_CarriedAmmo, CarriedAmmo);
 }
 
 //
 //============================================ Combat ============================================
 //
-//void UCombatComponent::OnRep_CombatType() {
-//	//if (CombatType)
-//}
+void UCombatComponent::OnRep_CombatState() {
+
+	switch (CombatState) {
+		case ECombatState::ECS_Reloading :
+			if (EquippedWeapon == nullptr) return;
+			FString WeaponTypeStr = EWeaponTypeStr::ToString(EquippedWeapon->GetWeaponType());
+			WeaponTypeStr += bAiming ? FString("Ironsight") : FString("Hip");
+			PlayCharacterMontage(ReloadMontage, *WeaponTypeStr);
+			break;
+	}
+
+	FString CombatStateStr = ECombatStateStr::ToString(CombatState);
+	NANI_LOG(Warning, "CombatState: %s", *CombatStateStr);
+}
 
 //
 //============================================ Reload ============================================
 //
-//void UCombatComponent::ServerReloadPressed_Implementation() {
-//	if (EquippedWeapon == nullptr) return;
-//	
-//	/* we only reload if combat type is unoccupied */
-//	if (CombatType != ECombatType::UnOccupied) return;
-//
-//	CombatType = ECombatType::EWT_Reloading;
-//
-//	GetWorldTimerManager().SetTimer(ReloadTimer, this, &UCombatComponent::ReloadFinished, EquippedWeapon->GetReloadTime());
-//
-//	/* Playing Character Reload Animation */
-//	PlayCharacterMontage(ReloadMontage, *EquippedWeapon->GetWeaponTypeStr());
-//}
-//void UCombatComponent::ReloadFinished() {
-//	CombatType = ECombatType::EWT_UnOccupied;
-//}
+void UCombatComponent::ServerReload_Implementation() {
+	/* Happens nn Authority */
+	if (EquippedWeapon == nullptr) return;
+	
+	/* we only reload if combat type is unoccupied */
+	if (CombatState != ECombatState::ECS_UnOccupied) return;
+
+	CombatState = ECombatState::ECS_Reloading;
+
+	GetWorld()->GetTimerManager().SetTimer(ReloadTimer, this, &UCombatComponent::ReloadFinished, EquippedWeapon->GetReloadTime());
+
+	/* playing character reload animation */
+	FString WeaponTypeStr = EWeaponTypeStr::ToString(EquippedWeapon->GetWeaponType());
+	WeaponTypeStr += bAiming ? FString("Ironsight") : FString("Hip");
+	PlayCharacterMontage(ReloadMontage, *WeaponTypeStr);
+}
+void UCombatComponent::ReloadFinished() {
+	/* Happens on AUthority */
+	CombatState = ECombatState::ECS_UnOccupied;
+
+	/* Adds Ammo to weapon */
+
+	/* bFirePressed */
+}
