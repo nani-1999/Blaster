@@ -53,7 +53,7 @@ ABlasterCharacter::ABlasterCharacter() :
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>("CameraBoom");
 	CameraBoom->SetupAttachment(GetMesh()); /* idk why mesh tho, maybe because to move boom along the animations */
 	//CameraBoom->SetUsingAbsoluteRotation(true);
-	CameraBoom->TargetArmLength = 350.f;
+	CameraBoom->TargetArmLength = 250.f;
 	CameraBoom->SocketOffset = FVector(0.f, 75.f, 75.f); /* offsetting cameraboom's end point to the right and up, so that the character is not on the way of crosshair */
 	CameraBoom->bUsePawnControlRotation = true;
 
@@ -69,6 +69,10 @@ ABlasterCharacter::ABlasterCharacter() :
 	/* OrientRotationToMovement */
 	bUseControllerRotationYaw = false; /* since other two axis are false by default */
 	GetCharacterMovement()->bOrientRotationToMovement = true;
+
+	//
+	//bUseControllerRotationYaw = true;
+	//GetCharacterMovement()->bOrientRotationToMovement = false;
 
 	/* Character Movement */
 	GetCharacterMovement()->MaxWalkSpeed = Combat->GetBaseWalkSpeed(); /* must be set after combat component is created */
@@ -139,6 +143,8 @@ void ABlasterCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 
 void ABlasterCharacter::PossessedBy(AController* NewController) {
 	Super::PossessedBy(NewController);
+
+	/* Happens on Authority */
 
 	NANI_LOG(Warning, "PossessedBy");
 
@@ -381,7 +387,7 @@ void ABlasterCharacter::FireReleased() {
 
 void ABlasterCharacter::ReloadPressed() {
 	NANI_LOG(Warning, "ReloadPressed");
-	if (Combat) Combat->ServerReload();
+	if (Combat) Combat->Reload();
 }
 
 //

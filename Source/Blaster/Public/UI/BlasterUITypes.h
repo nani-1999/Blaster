@@ -35,5 +35,6 @@ enum class EOverlayText : unsigned char {
 	EOT_Ammo,
 	//EOT_AmmoCapacity,
 	EOT_CarriedAmmo,
+	EOT_CountDown,
 	EOT_MAX
 };

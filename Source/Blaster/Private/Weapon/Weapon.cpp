@@ -58,9 +58,23 @@ AWeapon::AWeapon() :
 	PickupWidget->SetDrawAtDesiredSize(true);
 }
 
+void AWeapon::ServerTest_Implementation() {
+	NANI_LOG(Warning, "ServerTest");
+}
+void AWeapon::ClientTest_Implementation() {
+	NANI_LOG(Warning, "ClientTest");
+}
+void AWeapon::MulticastTest_Implementation() {
+	NANI_LOG(Warning, "MulticastTest");
+}
+
 void AWeapon::BeginPlay()
 {
 	Super::BeginPlay();
+
+	//ServerTest();
+	//ClientTest();
+	//MulticastTest();
 
 	/* Authority */
 	if (HasAuthority()) {
@@ -172,7 +186,25 @@ void AWeapon::FireBullet(const FVector& HitTarget) {
 	/* Decrementing Ammo */
 	Ammo = FMath::Clamp(Ammo - 1, 0, AmmoCapacity);
 
+	/* HUD's Overlay */
+	if (BlasterPC) BlasterPC->SetHUDOverlayText(EOverlayText::EOT_Ammo, Ammo);
+}
+
+//
+//============================================ Ammo ============================================
+//
+void AWeapon::OnRep_Ammo() {
+	NANI_LOG(Warning, "OnRep_Ammo");
 	/* HUD */
+	if (BlasterPC) BlasterPC->SetHUDOverlayText(EOverlayText::EOT_Ammo, Ammo);
+}
+void AWeapon::AddAmmo(int32 AddAmount) {
+	/* Happens on Authority */
+
+	/* adding ammo */
+	Ammo = FMath::Clamp(Ammo + AddAmount, 0, AmmoCapacity);
+
+	/* HUD's Overlay */
 	if (BlasterPC) BlasterPC->SetHUDOverlayText(EOverlayText::EOT_Ammo, Ammo);
 }
 
@@ -180,13 +212,10 @@ void AWeapon::FireBullet(const FVector& HitTarget) {
 //============================================ HUD ============================================
 //
 void AWeapon::SetOwner(AActor* NewOwner) {
+	/* Happens on Authority */
 	Super::SetOwner(NewOwner);
 
-	/* Happens on Authority */
-	NANI_LOG(Warning, "AWeapon | SetOwner");
-
 	/* This is mainly for reducting computation of casting everytime for setting data on HUD */
-
 	DetermineOwnerLocal(NewOwner);
 }
 void AWeapon::OnRep_Owner() {
@@ -208,12 +237,4 @@ void AWeapon::DetermineOwnerLocal(AActor* NetLocal) {
 	}
 
 	BlasterPC = nullptr;
-}
-
-//
-//============================================ Ammo ============================================
-//
-void AWeapon::OnRep_Ammo() {
-	/* HUD */
-	if (BlasterPC) BlasterPC->SetHUDOverlayText(EOverlayText::EOT_Ammo, Ammo);
 }

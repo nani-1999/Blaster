@@ -8,6 +8,28 @@
 
 #include "Blaster/Nani/NaniUtility.h"
 
+ABlasterPlayerController::ABlasterPlayerController() :
+	ServerClientDeltaTime{ 0.f },
+	TimeCounter{ 0.f },
+	ServerClientDeltaTimeUpdateFrequency{ 5.f }
+{
+
+}
+
+void ABlasterPlayerController::Tick(float DeltaTime) {
+
+	if (BlasterHUD) { /* which means we are local */
+		SetHUDOverlayText(EOverlayText::EOT_CountDown, GetServerTime());
+
+		/* Server-Client RoundTrip Time */
+		TimeCounter += DeltaTime;
+		if (TimeCounter > ServerClientDeltaTimeUpdateFrequency) {
+			TimeCounter = 0.f;
+			ServerRequestServerTime(GetWorld()->GetTimeSeconds());
+		}
+	}
+}
+
 void ABlasterPlayerController::OnPossess(APawn* aPawn) {
 	Super::OnPossess(aPawn);
 
@@ -51,4 +73,37 @@ void ABlasterPlayerController::SetHUDOverlayText(EOverlayText TextWidget, float 
 	BlasterHUD = BlasterHUD ? BlasterHUD : GetHUD<ABlasterHUD>(); /* since we don't know when to set this shitz */
 
 	if (BlasterHUD) BlasterHUD->SetOverlayText(TextWidget, Value);
+}
+
+//
+//============================================ Server-Client RoundTrip Time ============================================
+//
+void ABlasterPlayerController::ServerRequestServerTime_Implementation(float ClientTime) {
+	float ServerTime = GetWorld()->GetTimeSeconds();
+	ClientReceiveServerTime(ClientTime, ServerTime);
+}
+void ABlasterPlayerController::ClientReceiveServerTime_Implementation(float ClientTime, float ServerTime) {
+	float RoundTripTime = GetWorld()->GetTimeSeconds() - ClientTime;
+	float CurrentServerTime = ServerTime + (0.5f * RoundTripTime);
+
+	/* server client delta time is an offset value added to clients to sync up to server time */
+	ServerClientDeltaTime = CurrentServerTime - GetWorld()->GetTimeSeconds();
+}
+
+float ABlasterPlayerController::GetServerTime() {
+	return GetWorld()->GetTimeSeconds() + ServerClientDeltaTime;
+	//if (HasAuthority()) {
+	//	return GetWorld()->GetTimeSeconds();
+	//}
+	//else {
+	//	/* since non anuthoritative controller is local controller */
+	//	return GetWorld()->GetTimeSeconds() + ServerClientDeltaTime;
+	//}
+}
+
+//
+//============================================ Match State ============================================
+//
+void ABlasterPlayerController::ClientOnMatchStateSet_Implementation(FName State) {
+	/* also called on authority local controller */
 }

@@ -4,8 +4,57 @@
 #include "GameMode/BlasterGameMode.h"
 #include "Character/BlasterCharacter.h"
 #include "PlayerState/BlasterPlayerState.h"
+#include "Controller/BlasterPlayerController.h"
 
 #include "Blaster/Nani/NaniUtility.h"
+
+
+ABlasterGameMode::ABlasterGameMode() :
+	//GameModeStartingTime{ 0.f },
+	WarmupTime{ 10.f },
+	CountdownTime{ 0.f }
+{
+	/* this will prevent match to auto start */
+	bDelayedStart = true;
+
+	/* the entirity of game mode happens on authority */
+}
+
+void ABlasterGameMode::BeginPlay() {
+	Super::BeginPlay();
+
+	/* time when this game mode starts 
+	 * since GetTimeSeconds() is game specific, we offset it by a value when the game mode starts */
+	//GameModeStartingTime = GetWorld()->GetTimeSeconds();
+
+	CountdownTime = WarmupTime;
+}
+
+void ABlasterGameMode::Tick(float DeltaTime) {
+	Super::Tick(DeltaTime);
+
+	/* jumping into game after some cooldown */
+	if (MatchState == MatchState::WaitingToStart) {
+		//CountdownTime = WarmupTime - GetWorld()->GetTimeSeconds() + GameModeStartingTime; /* just decrementing countdowntime instead */
+		CountdownTime -= DeltaTime;
+		if (CountdownTime <= 0.f) {
+			StartMatch();
+		}
+	}
+}
+
+void ABlasterGameMode::OnMatchStateSet() {
+	Super::OnMatchStateSet();
+
+	/* we are doing rpc instead of making a property replication on player controller */
+
+	/* a iterator which consists of all playercontrollers */
+	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It) {
+		if (ABlasterPlayerController* BlasterPC = Cast<ABlasterPlayerController>(*It)) {
+			BlasterPC->ClientOnMatchStateSet(MatchState);
+		}
+	}
+}
 
 void ABlasterGameMode::EliminatePlayer(ABlasterCharacter* VictimPlayer, AController* VictimController, AController* AttackerController) {
 	NANI_LOG(Warning, "%s Eliminated %s", *AttackerController->GetName(), *VictimPlayer->GetName());

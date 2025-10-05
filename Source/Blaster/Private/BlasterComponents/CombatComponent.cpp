@@ -29,7 +29,7 @@ UCombatComponent::UCombatComponent() :
 	PrimaryComponentTick.bCanEverTick = true;
 
 	/* zero initializing on all machines, but server is the real one */
-	InitAllCarriedAmmo(0);
+	InitAllCarriedAmmo(20);
 
 	OwnerChar = GetOwner<ACharacter>();
 }
@@ -123,8 +123,11 @@ void UCombatComponent::EquipWeapon(AWeapon* WeaponToEquip) {
 				EquippedWeapon->SetOwner(OwnerChar);
 
 				/* Carried Ammo changed based on Equipped Weapon Type 
-				 * find always since it has all weapon types values */
+				 * find always works since it has all weapon types values */
 				CarriedAmmo = AllCarriedAmmo.FindChecked(EquippedWeapon->GetWeaponType());
+
+				/* auto reload after equipping weapon */
+				Reload();
 			}
 			//else {
 				/* change WeaponToEquip's WeaponState back to original and pretend like nothing happend */
@@ -205,6 +208,7 @@ void UCombatComponent::UpdateHUDCrosshair(float DeltaTime) {
 	CrosshairAimFactor = FMath::FInterpTo(CrosshairAimFactor, bAiming ? 0.f : 1.f, DeltaTime, 20.f);
 
 	float SumOfAllFactors = CrosshairSurfaceFactor + CrosshairInAirFactor + CrosshairAimFactor;
+	SumOfAllFactors *= 0.5f; /* halfing since spread is extreme */
 
 	/* Crosshair Color  */
 	FLinearColor CrosshairColor;
@@ -276,11 +280,9 @@ void UCombatComponent::TraceUnderCursor(float TraceLength, bool bOffset) {
 //============================================ Fire ============================================
 //
 void UCombatComponent::SetFiring(bool bPressed) {
-	if (EquippedWeapon == nullptr) return;
+	bFirePressed = bPressed;
 
-	bFirePressed = bPressed; /* FireButtonPressed */
-
-	if (bFirePressed && bAllowFire && (CombatState == ECombatState::ECS_UnOccupied)) {
+	if (EquippedWeapon && bFirePressed) {
 		if (EquippedWeapon->GetAmmo() > 0) {
 			FireWeapon();
 		}
@@ -289,11 +291,13 @@ void UCombatComponent::SetFiring(bool bPressed) {
 			 * we don't brrrrrrrrrr and kek at end 
 			 * remember there will be a slight delay, since we server and from there multicasting */
 			ServerFireEmpty();
-			ServerReload();
+			Reload();
 		}
 	}
 }
 void UCombatComponent::FireWeapon() {
+	if (EquippedWeapon == nullptr || !bAllowFire || CombatState != ECombatState::ECS_UnOccupied) return;
+
 	bAllowFire = false;
 
 	/* only server needs to know about hittarget,
@@ -313,13 +317,13 @@ void UCombatComponent::AllowFire() {
 	//if (bFirePressed && EquippedWeapon->IsAutomatic() && (EquippedWeapon->GetAmmo() > 0)) FireWeapon();
 
 	/* use this instead if you want to brrrrrrr and kek at the end */
-	if (bFirePressed && EquippedWeapon->IsAutomatic() && (CombatState == ECombatState::ECS_UnOccupied)) {
+	if (EquippedWeapon && bFirePressed && EquippedWeapon->IsAutomatic()) {
 		if (EquippedWeapon->GetAmmo() > 0) {
 			FireWeapon();
 		}
 		else {
 			ServerFireEmpty();
-			ServerReload();
+			Reload();
 		}
 	}
 }
@@ -382,30 +386,48 @@ void UCombatComponent::OnRep_CarriedAmmo() {
 //
 //============================================ Combat ============================================
 //
-void UCombatComponent::OnRep_CombatState() {
+void UCombatComponent::OnRep_CombatState(ECombatState OldCombatState) {
 
 	switch (CombatState) {
 		case ECombatState::ECS_Reloading :
 			if (EquippedWeapon == nullptr) return;
 			FString WeaponTypeStr = EWeaponTypeStr::ToString(EquippedWeapon->GetWeaponType());
-			WeaponTypeStr += bAiming ? FString("Ironsight") : FString("Hip");
+			//WeaponTypeStr += bAiming ? FString("Ironsight") : FString("Hip");
 			PlayCharacterMontage(ReloadMontage, *WeaponTypeStr);
 			break;
 	}
 
-	FString CombatStateStr = ECombatStateStr::ToString(CombatState);
-	NANI_LOG(Warning, "CombatState: %s", *CombatStateStr);
+	/* Local */
+	if (BlasterPC) {
+		switch (OldCombatState) {
+			case ECombatState::ECS_Reloading :
+			/* means reload is just finished */
+			if (bFirePressed && bAllowFire && CombatState == ECombatState::ECS_UnOccupied) FireWeapon();
+			break;
+		}
+	}
 }
 
 //
 //============================================ Reload ============================================
 //
+void UCombatComponent::Reload() {
+	if (EquippedWeapon == nullptr || CombatState != ECombatState::ECS_UnOccupied) return;
+
+	if (CarriedAmmo > 0 && EquippedWeapon->GetAmmo() < EquippedWeapon->GetAmmoCapacity()) {
+		ServerReload();
+	}
+	else {
+		/* Reload Empty */
+		//ServerReloadEmpty();
+		NANI_LOG(Warning, "No Ammo To Reload | Reloading Empty");
+	}
+}
+
 void UCombatComponent::ServerReload_Implementation() {
-	/* Happens nn Authority */
-	if (EquippedWeapon == nullptr) return;
-	
-	/* we only reload if combat type is unoccupied */
-	if (CombatState != ECombatState::ECS_UnOccupied) return;
+	/* Happens on Authority */
+
+	if (EquippedWeapon == nullptr || CarriedAmmo < 1 || CombatState != ECombatState::ECS_UnOccupied) return;
 
 	CombatState = ECombatState::ECS_Reloading;
 
@@ -413,14 +435,43 @@ void UCombatComponent::ServerReload_Implementation() {
 
 	/* playing character reload animation */
 	FString WeaponTypeStr = EWeaponTypeStr::ToString(EquippedWeapon->GetWeaponType());
-	WeaponTypeStr += bAiming ? FString("Ironsight") : FString("Hip");
+	//WeaponTypeStr += bAiming ? FString("Ironsight") : FString("Hip");
 	PlayCharacterMontage(ReloadMontage, *WeaponTypeStr);
 }
 void UCombatComponent::ReloadFinished() {
 	/* Happens on AUthority */
+
+	//if (EquippedWeapon == nullptr) {
+	//	CombatState = ECombatState::ECS_UnOccupied;
+	//	return;
+	//}
+
+	if (EquippedWeapon && CarriedAmmo > 0) {
+		/* adding ammo to weapon */
+		int32& CarriedAmmoRef = AllCarriedAmmo.FindChecked(EquippedWeapon->GetWeaponType()); /* this shiz always works since we have ammo of all weapon types */
+		int32 AmmoNeedToReload = EquippedWeapon->GetAmmoCapacity() - EquippedWeapon->GetAmmo();
+		if (CarriedAmmoRef > AmmoNeedToReload) {
+			/* carried ammo is more than ammo we need, so we add the ammo we need */
+			EquippedWeapon->AddAmmo(AmmoNeedToReload);
+			/* and we sub the ammo, that we added to weapon */
+			CarriedAmmoRef -= AmmoNeedToReload;
+		}
+		else {
+			EquippedWeapon->AddAmmo(CarriedAmmoRef);
+			CarriedAmmoRef = 0;
+		}
+
+		CarriedAmmo = CarriedAmmoRef;
+
+		/* HUD's Overlay */
+		if (BlasterPC) {
+			BlasterPC->SetHUDOverlayText(EOverlayText::EOT_CarriedAmmo, CarriedAmmo);
+		}
+	}
+
+	/* in the end we back to unoccupied state 
+	 * might be check for if previous reload state */
 	CombatState = ECombatState::ECS_UnOccupied;
-
-	/* Adds Ammo to weapon */
-
-	/* bFirePressed */
 }
+
+//void UCombatComponent::ServerReloadEmpty_Implementation() {}

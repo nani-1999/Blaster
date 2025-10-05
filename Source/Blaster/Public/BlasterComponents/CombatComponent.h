@@ -103,9 +103,11 @@ protected:
 	UPROPERTY(ReplicatedUsing = OnRep_CombatState)
 	ECombatState CombatState;
 	UFUNCTION()
-	void OnRep_CombatState();
+	void OnRep_CombatState(ECombatState OldCombatState);
 
 	/* Reload */
+	UFUNCTION(Server, Reliable)
+	void ServerReload();
 	UPROPERTY(EditDefaultsOnly)
 	TObjectPtr<UAnimMontage> ReloadMontage;
 	/* Reload Timer */
@@ -146,8 +148,7 @@ public:
 	FORCEINLINE ECombatState GetCombatState() const { return CombatState; }
 
 	/* Reload */
-	UFUNCTION(Server, Reliable)
-	void ServerReload();
+	void Reload();
 
 	/* References */
 	void SetReferences();

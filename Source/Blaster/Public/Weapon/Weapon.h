@@ -114,6 +114,14 @@ protected:
 	void DetermineOwnerLocal(AActor* NetLocal);
 	virtual void OnRep_Owner() override;
 
+	/* test */
+	UFUNCTION(Server, Reliable)
+		void ServerTest();
+	UFUNCTION(Client, Reliable)
+		void ClientTest();
+	UFUNCTION(NetMulticast, Reliable)
+		void MulticastTest();
+
 public:
 	/* Pickup Widget */
 	void ShowPickupWidget(bool bShow);
@@ -133,16 +141,6 @@ public:
 
 	/* Crosshair */
 	FCrosshairTextures& GetCrosshair() { return Crosshair; }
-	//UPROPERTY(EditDefaultsOnly)
-	//TObjectPtr<UTexture2D> CrosshairCenter;
-	//UPROPERTY(EditDefaultsOnly)
-	//TObjectPtr<UTexture2D> CrosshairTop;
-	//UPROPERTY(EditDefaultsOnly)
-	//TObjectPtr<UTexture2D> CrosshairRight;
-	//UPROPERTY(EditDefaultsOnly)
-	//TObjectPtr<UTexture2D> CrosshairBottom;
-	//UPROPERTY(EditDefaultsOnly)
-	//TObjectPtr<UTexture2D> CrosshairLeft;
 
 	/* Field Of View */
 	FORCEINLINE float GetAimedFOV() const { return AimedFOV; }
@@ -155,6 +153,7 @@ public:
 	/* Ammo */
 	FORCEINLINE int32 GetAmmoCapacity() const { return AmmoCapacity; }
 	FORCEINLINE int32 GetAmmo() const { return Ammo; }
+	void AddAmmo(int32 AddAmount);
 
 	/* Weapon Type */
 	FORCEINLINE EWeaponType GetWeaponType() const { return WeaponType; }

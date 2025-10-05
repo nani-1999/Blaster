@@ -14,7 +14,20 @@ class BLASTER_API ABlasterGameMode : public AGameMode
 	GENERATED_BODY()
 
 public:
+	ABlasterGameMode();
+
+	virtual void Tick(float DeltaTime) override;
+
 	virtual void EliminatePlayer(ABlasterCharacter* VictimPlayer, AController* VictimController, AController* AttackerController);
 
 	void RequestRespawn(ABlasterCharacter* VictimPlayer, AController* VictimController);
+
+protected:
+	//float GameModeStartingTime;
+	float WarmupTime;
+	float CountdownTime;
+
+	virtual void BeginPlay() override;
+
+	virtual void OnMatchStateSet() override;
 };

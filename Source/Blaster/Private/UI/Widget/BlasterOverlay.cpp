@@ -16,6 +16,10 @@ void UBlasterOverlay::SetText(EOverlayText TextWidget, float Value) {
 	UTextBlock* TextBlock = nullptr;
 
 	switch (TextWidget) {
+		case EOverlayText::EOT_CountDown :
+			SetCountDownText(Value);
+			return;
+			break;
 		case EOverlayText::EOT_Ammo : /* since very often and we can fast break */
 			TextBlock = AmmoText;
 			break;
@@ -46,4 +50,13 @@ void UBlasterOverlay::SetText(EOverlayText TextWidget, float Value) {
 	}
 
 	if (TextBlock) TextBlock->SetText(FText::AsNumber(Value, NumberFormat));
+}
+
+void UBlasterOverlay::SetCountDownText(float Seconds) {
+	int MinVal = Seconds / 60.f;
+	int SecVal = (int)Seconds % 60;
+
+	FText CountDownTxt = FText::FromString(FString::Printf(TEXT("%2d:%2d"), MinVal, SecVal));
+
+	if (CountDownText) CountDownText->SetText(CountDownTxt);
 }
