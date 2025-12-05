@@ -16,14 +16,10 @@ class BLASTER_API AProjectileWeapon : public AWeapon
 public:
 	AProjectileWeapon();
 
-	virtual void Tick(float DeltaTime) override;
-
 	/* Fire Bullet */
 	virtual void FireBullet(const FVector& HitTarget) override;
 
 protected:
-	virtual void BeginPlay() override;
-
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditDefaultsOnly, Category = "UserClass | ProjectileWeapon")
 	TSubclassOf<AProjectile> ProjectileClass;
 };

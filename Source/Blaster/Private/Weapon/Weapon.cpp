@@ -19,12 +19,13 @@
 #include "Blaster/Nani/NaniUtility.h"
 
 AWeapon::AWeapon() :
+	bCanAim{ false },
 	AimedFOV{ 30.f },
 	FOVInterpSpeed{ 20.f },
 	FireRate{ 0.5f },
 	bIsAutomatic{ false },
 	AmmoCapacity{ 30 },
-	Ammo{ 20 },
+	Ammo{ 1 },
 	WeaponType{ EWeaponType::EWT_AssaultRifle },
 	ReloadTime{ 2.f }
 {
@@ -58,16 +59,6 @@ AWeapon::AWeapon() :
 	PickupWidget->SetDrawAtDesiredSize(true);
 }
 
-void AWeapon::ServerTest_Implementation() {
-	NANI_LOG(Warning, "ServerTest");
-}
-void AWeapon::ClientTest_Implementation() {
-	NANI_LOG(Warning, "ClientTest");
-}
-void AWeapon::MulticastTest_Implementation() {
-	NANI_LOG(Warning, "MulticastTest");
-}
-
 void AWeapon::BeginPlay()
 {
 	Super::BeginPlay();
@@ -89,12 +80,6 @@ void AWeapon::BeginPlay()
 		TextWidget->SetText(FText::FromString(FString("Pickup")));
 		TextWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
 	}
-}
-
-void AWeapon::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
 }
 
 void AWeapon::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const {
@@ -152,7 +137,7 @@ void AWeapon::UpdateWeaponState() {
 //
 FTransform AWeapon::GetGripSocket() const {
 	/* One is Grip and Another One is Wrist */
-	return WeaponMesh->GetSocketTransform(FName("Grip")); /* getting world space by default */
+	return WeaponMesh->GetSocketTransform(FName("Grip")); /* gives world space by default */
 }
 
 //
@@ -162,7 +147,7 @@ void AWeapon::PlayFireAnimation() {
 	/* Playing Weapon Fire Animation */
 	if (FireAnimation) WeaponMesh->PlayAnimation(FireAnimation, false);
 
-	/* Spawning Weapon Shell 
+	/* also Spawning Weapon Shell 
 	 * Spawning Casing from WeaponMesh Ammo(Shell) Ejection Socket */
 	if (CasingClass) {
 		const USkeletalMeshSocket* AmmoEjectSocket = WeaponMesh->GetSocketByName(FName("AmmoEject"));
@@ -183,21 +168,13 @@ void AWeapon::PlayFireEmpty() {
 void AWeapon::FireBullet(const FVector& HitTarget) {
 	/* Happens on Authority */
 
-	/* Decrementing Ammo */
-	Ammo = FMath::Clamp(Ammo - 1, 0, AmmoCapacity);
-
-	/* HUD's Overlay */
-	if (BlasterPC) BlasterPC->SetHUDOverlayText(EOverlayText::EOT_Ammo, Ammo);
+	/* decrementing ammo */
+	AddAmmo(-1);
 }
 
 //
 //============================================ Ammo ============================================
 //
-void AWeapon::OnRep_Ammo() {
-	NANI_LOG(Warning, "OnRep_Ammo");
-	/* HUD */
-	if (BlasterPC) BlasterPC->SetHUDOverlayText(EOverlayText::EOT_Ammo, Ammo);
-}
 void AWeapon::AddAmmo(int32 AddAmount) {
 	/* Happens on Authority */
 
@@ -207,9 +184,14 @@ void AWeapon::AddAmmo(int32 AddAmount) {
 	/* HUD's Overlay */
 	if (BlasterPC) BlasterPC->SetHUDOverlayText(EOverlayText::EOT_Ammo, Ammo);
 }
+void AWeapon::OnRep_Ammo() {
+	NANI_LOG(Warning, "OnRep_Ammo");
+	/* HUD */
+	if (BlasterPC) BlasterPC->SetHUDOverlayText(EOverlayText::EOT_Ammo, Ammo);
+}
 
 //
-//============================================ HUD ============================================
+//============================================ References ============================================
 //
 void AWeapon::SetOwner(AActor* NewOwner) {
 	/* Happens on Authority */
@@ -235,6 +217,9 @@ void AWeapon::DetermineOwnerLocal(AActor* NetLocal) {
 			}
 		}
 	}
-
 	BlasterPC = nullptr;
+}
+
+void AWeapon::ServerTest_Implementation() {
+	NANI_LOG(Error, "%s | ServerTest", *GetName());
 }

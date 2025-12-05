@@ -10,7 +10,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Camera/CameraComponent.h"
 #include "Interface/CombatInterface.h"
-#include "Controller/BlasterPlayerController.h" 
+#include "Controller/BlasterPlayerController.h" /* universally required to init ui */
 #include "UI/BlasterUITypes.h"
 
 //#include "UI/HUD/BlasterHUD.h"
@@ -84,7 +84,8 @@ void UCombatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 //
 void UCombatComponent::SetReferences() {
 	BlasterPC = OwnerChar->GetController<ABlasterPlayerController>();
-
+}
+void UCombatComponent::InitOverlay() {
 	/* HUD's Overlay */
 	BlasterPC->SetHUDOverlayText(EOverlayText::EOT_CarriedAmmo, GetCarriedAmmo());
 	BlasterPC->SetHUDOverlayText(EOverlayText::EOT_Ammo, GetWeaponAmmo());
@@ -153,6 +154,9 @@ void UCombatComponent::OnRep_EquippedWeapon(AWeapon* OldEquippedWeapon) {
 void UCombatComponent::DropWeapon() {
 	/* Happens on Authority */
 	if (EquippedWeapon == nullptr) return;
+
+	/* releasing aim */
+	SetAiming(false);
 
 	/* detaching weapon */
 	EquippedWeapon->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
@@ -229,7 +233,7 @@ void UCombatComponent::SetWalkSpeed(float WalkSpeedToSet) {
 //============================================ Aim ============================================
 //
 void UCombatComponent::SetAiming(bool bIsAiming) {
-	if (EquippedWeapon == nullptr) return;
+	if (EquippedWeapon == nullptr || !EquippedWeapon->CanAim()) return;
 
 	bAiming = bIsAiming;
 	SetWalkSpeed(bAiming ? AimWalkSpeed : BaseWalkSpeed);
@@ -265,7 +269,7 @@ void UCombatComponent::TraceUnderCursor(float TraceLength, bool bOffset) {
 	if (!bProjectionSuccessful) return; /* this is a server failed, for non-owning authoritative characters, since they have controller but no viewport */
 	
 	/* since there are issuses like blocking itself or actors behind, so we need to offset some distance towards */
-	float OffsetDistance = (CursorWorldPosition - OwnerChar->GetActorLocation()).Size() + 100.f;  /* here we are offsetting distance from screen to character location + 100.f more */
+	float OffsetDistance = (CursorWorldPosition - OwnerChar->GetActorLocation()).Size() + 100.f;  /* here we are offsetting distance from screen to character location, + 100.f more */
 
 	/* Start Point */
 	FVector CursorStartPosition = CursorWorldPosition + OffsetDistance * CursorWorldDirection;
@@ -288,7 +292,7 @@ void UCombatComponent::SetFiring(bool bPressed) {
 		}
 		else {
 			/* we only kek when bFirePressed
-			 * we don't brrrrrrrrrr and kek at end 
+			 * we don't brrrrrrrrrr and kek at end
 			 * remember there will be a slight delay, since we server and from there multicasting */
 			ServerFireEmpty();
 			Reload();
@@ -330,7 +334,7 @@ void UCombatComponent::AllowFire() {
 
 void UCombatComponent::ServerFire_Implementation(const FVector_NetQuantize HitTarget) {
 	if (EquippedWeapon == nullptr || EquippedWeapon->GetAmmo() < 1 || CombatState != ECombatState::ECS_UnOccupied) return;
-	
+
 	/* ammo check on server too, to prevent cheating */
 	//if (EquippedWeapon->GetAmmo() <= 0) return;
 
@@ -345,15 +349,17 @@ void UCombatComponent::ServerFire_Implementation(const FVector_NetQuantize HitTa
 void UCombatComponent::MulticastFire_Implementation() {
 	if (EquippedWeapon == nullptr) return;
 
+	/* Character, Fire Animation */
 	FString WeaponTypeStr = EWeaponTypeStr::ToString(EquippedWeapon->GetWeaponType());
 	WeaponTypeStr += bAiming ? FString("Ironsight") : FString("Hip");
 	PlayCharacterMontage(FireMontage, *WeaponTypeStr);
 
+	/* Weapon, Fire Animation */
 	EquippedWeapon->PlayFireAnimation();
 }
 
 void UCombatComponent::ServerFireEmpty_Implementation() {
-	if (EquippedWeapon == nullptr) return;
+	if (EquippedWeapon == nullptr || CombatState != ECombatState::ECS_UnOccupied) return;
 
 	MulticastFireEmpty();
 }
@@ -397,7 +403,8 @@ void UCombatComponent::OnRep_CombatState(ECombatState OldCombatState) {
 			break;
 	}
 
-	/* Local */
+	/* Local 
+	 * Old Combat State */
 	if (BlasterPC) {
 		switch (OldCombatState) {
 			case ECombatState::ECS_Reloading :
@@ -441,11 +448,6 @@ void UCombatComponent::ServerReload_Implementation() {
 void UCombatComponent::ReloadFinished() {
 	/* Happens on AUthority */
 
-	//if (EquippedWeapon == nullptr) {
-	//	CombatState = ECombatState::ECS_UnOccupied;
-	//	return;
-	//}
-
 	if (EquippedWeapon && CarriedAmmo > 0) {
 		/* adding ammo to weapon */
 		int32& CarriedAmmoRef = AllCarriedAmmo.FindChecked(EquippedWeapon->GetWeaponType()); /* this shiz always works since we have ammo of all weapon types */
@@ -470,8 +472,6 @@ void UCombatComponent::ReloadFinished() {
 	}
 
 	/* in the end we back to unoccupied state 
-	 * might be check for if previous reload state */
-	CombatState = ECombatState::ECS_UnOccupied;
+	 * might be check for if previous state is reload */
+	if (CombatState == ECombatState::ECS_Reloading) CombatState = ECombatState::ECS_UnOccupied;
 }
-
-//void UCombatComponent::ServerReloadEmpty_Implementation() {}

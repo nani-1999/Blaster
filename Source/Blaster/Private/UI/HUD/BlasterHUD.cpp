@@ -3,6 +3,8 @@
 
 #include "UI/HUD/BlasterHUD.h"
 #include "UI/Widget/BlasterOverlay.h"
+#include "UI/Widget/TextWidget.h"
+#include "UI/Widget/AnnouncementOverlay.h"
 
 #include "Blaster/Nani/NaniUtility.h"
 
@@ -10,7 +12,10 @@ void ABlasterHUD::SetOwner(AActor* NewOwner) {
 	Super::SetOwner(NewOwner);
 
 	/* after lots of trial and errors from different classes, there is where its safe to built overlay */
-	InitOverlay(GetOwner<APlayerController>()); /* a hud's owner is always a controller */
+	APlayerController* PC = GetOwner<APlayerController>();
+	CreateOverlay(PC); /* a hud's owner is always a controller */
+	CreateCountdownText(PC);
+	CreateAnnouncementOverlay(PC);
 }
 
 void ABlasterHUD::DrawHUD() {
@@ -47,17 +52,70 @@ void ABlasterHUD::DrawCrosshair(FVector2D DrawLoc) {
 }
 
 //
+//============================================ Countdown ============================================
+//
+void ABlasterHUD::CreateCountdownText(APlayerController* Controller) {
+	/* use enum type if there are lot of widgets to create on hud */
+
+	if (CountdownTextClass && Controller) {
+		CountdownText = CreateWidget<UTextWidget>(Controller, CountdownTextClass, FName("CountdownText"));
+		if (CountdownText) {
+			CountdownText->AddToViewport();
+			CountdownText->SetVisibility(ESlateVisibility::HitTestInvisible);
+		}
+	}
+}
+void ABlasterHUD::SetCountdownText(float Seconds) {
+	if (CountdownText) {
+		int MinVal = Seconds / 60.f;
+		int SecVal = (int)Seconds % 60;
+		FText CountdownTxt = FText::FromString(FString::Printf(TEXT("%2d:%2d"), MinVal, SecVal));
+		CountdownText->SetText(CountdownTxt);
+	}
+}
+
+//
 //============================================ Overlay ============================================
 //
-void ABlasterHUD::InitOverlay(APlayerController* Controller) {
+void ABlasterHUD::CreateOverlay(APlayerController* Controller) {
 	if (OverlayClass && Controller) {
 		Overlay = CreateWidget<UBlasterOverlay>(Controller, OverlayClass, FName("BlasterOverlay"));
 		if (Overlay) {
 			Overlay->AddToViewport();
-			Overlay->SetVisibility(ESlateVisibility::HitTestInvisible);
+			Overlay->SetVisibility(ESlateVisibility::Hidden);
 		}
 	}
 }
+void ABlasterHUD::SetOverlayVisibility(bool bVisible) {
+	if (Overlay) Overlay->SetVisibility(bVisible ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Hidden);
+}
 void ABlasterHUD::SetOverlayText(EOverlayText TextWidget, float Value) {
 	if (Overlay) Overlay->SetText(TextWidget, Value);
+}
+
+//
+//============================================ Announcement Overlay ============================================
+//
+void ABlasterHUD::CreateAnnouncementOverlay(APlayerController* Controller) {
+	if (AnnouncementOverlayClass && Controller) {
+		AnnouncementOverlay = CreateWidget<UAnnouncementOverlay>(Controller, AnnouncementOverlayClass, FName("AnnouncementOverlay"));
+		if (AnnouncementOverlay) {
+			AnnouncementOverlay->AddToViewport();
+			AnnouncementOverlay->SetVisibility(ESlateVisibility::HitTestInvisible);
+		}
+	}
+}
+void ABlasterHUD::SetAnnouncementOverlayVisibility(bool bVisibility) {
+	if (AnnouncementOverlay) AnnouncementOverlay->SetVisibility(bVisibility ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Hidden);
+}
+void ABlasterHUD::SetAnnouncementMatchState(EAnnouncementMatchState State) {
+	if (AnnouncementOverlay) AnnouncementOverlay->SetMatchState(State);
+}
+void ABlasterHUD::SetAnnouncementCountdown(float Seconds) {
+	if (AnnouncementOverlay) {
+		int MinVal = Seconds / 60.f;
+		int SecVal = (int)Seconds % 60;
+		FText CountdownTxt = FText::FromString(FString::Printf(TEXT("%2d:%2d"), MinVal, SecVal));
+		AnnouncementOverlay->SetCountdownText(CountdownTxt);
+	} 
 }

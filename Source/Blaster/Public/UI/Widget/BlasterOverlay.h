@@ -43,9 +43,9 @@ protected:
 	TObjectPtr<UTextBlock> CarriedAmmoText;
 
 	/* Count Down */
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UTextBlock> CountDownText;
-	void SetCountDownText(float Seconds);
+	//UPROPERTY(meta = (BindWidget))
+	//TObjectPtr<UTextBlock> CountDownText;
+	//void SetCountDownText(float Seconds);
 
 public:
 	void SetText(EOverlayText TextWidget, float Value);

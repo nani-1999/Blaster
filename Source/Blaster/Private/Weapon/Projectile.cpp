@@ -4,14 +4,15 @@
 #include "Weapon/Projectile.h"
 #include "Components/BoxComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
-#include "Particles/ParticleSystemComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Particles/ParticleSystem.h"
 #include "Sound/SoundCue.h"
 
 #include "Blaster/Nani/NaniUtility.h"
 
-AProjectile::AProjectile() {
+AProjectile::AProjectile() :
+	Damage{ 0.f }
+{
 	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = true;
 
@@ -31,9 +32,6 @@ AProjectile::AProjectile() {
 	ProjectileComp->InitialSpeed = 15000.f;
 	ProjectileComp->MaxSpeed = 15000.f;
 	//ProjectileComp->ProjectileGravityScale = 0.f;
-
-	TracerParticle = CreateDefaultSubobject<UParticleSystemComponent>("TracerParticle");
-	TracerParticle->SetupAttachment(BoxCollision);
 }
 
 void AProjectile::BeginPlay()
@@ -61,11 +59,11 @@ void AProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, U
 }
 
 void AProjectile::Destroyed() {
-	Super::Destroyed();
-
 	/* cannot do this particle and sound in override Destroyed() function, since net relevancy is a factor
 	 * but we doing it anyway since it saves multicast rpc or collision hit event on client 
 	 * will change/fix this if found any problem in future */
 	if (ImpactParticle) UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ImpactParticle, GetActorTransform());
 	if (ImpactSound) UGameplayStatics::PlaySoundAtLocation(this, ImpactSound, GetActorLocation());
+
+	Super::Destroyed();
 }

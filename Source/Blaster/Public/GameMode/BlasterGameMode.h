@@ -7,6 +7,7 @@
 #include "BlasterGameMode.generated.h"
 
 class ABlasterCharacter;
+class ABlasterPlayerController;
 
 UCLASS()
 class BLASTER_API ABlasterGameMode : public AGameMode
@@ -22,12 +23,23 @@ public:
 
 	void RequestRespawn(ABlasterCharacter* VictimPlayer, AController* VictimController);
 
-protected:
-	//float GameModeStartingTime;
-	float WarmupTime;
-	float CountdownTime;
+	/* Match State */
+	//void ClientPlayerReceiveMatchState(ABlasterPlayerController* BlasterPC);
+	FORCEINLINE float GetMatchStateStartTime() const { return MatchStateStartTime; }
+	float GetMatchStateTimeSeconds() const;
 
+protected:
 	virtual void BeginPlay() override;
 
 	virtual void OnMatchStateSet() override;
+
+	/* Match State */
+	float MatchStateStartTime;
+
+	UPROPERTY(EditDefaultsOnly)
+	float WaitingToStartTimeSeconds;
+	UPROPERTY(EditDefaultsOnly)
+	float InProgressTimeSeconds;
+	UPROPERTY(EditDefaultsOnly)
+	float WaitingPostMatchTimeSeconds;
 };

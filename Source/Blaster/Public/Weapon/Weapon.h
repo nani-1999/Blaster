@@ -1,4 +1,6 @@
 // Copyright Na9i Studio.
+/* equiped, reload sounds are played in character's respective animations
+ * impact particle and sounds are multicast played by weapon itself */
 
 #pragma once
 
@@ -19,8 +21,9 @@ class USoundCue;
 UENUM()
 enum class EWeaponState : uint8 {
 	EWS_Initial,
-	EWS_Equipped,
-	EWS_Dropped,
+	EWS_Equipped, /* Owned, and currently drawn */
+	EWS_Holstered, /* Owned, but not drawn */
+	EWS_Dropped, /* Not Owned */
 	EWS_MAX
 };
 
@@ -32,8 +35,6 @@ class BLASTER_API AWeapon : public AActor
 public:	
 	AWeapon();
 
-	virtual void Tick(float DeltaTime) override;
-
 	/* Property Registerer For Replication */
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
@@ -44,11 +45,11 @@ protected:
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<USkeletalMeshComponent> WeaponMesh;
 	/* Animation */
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditDefaultsOnly, Category = "UserClass | Weapon")
 	TObjectPtr<UAnimationAsset> FireAnimation;
 
 	/* Sound */
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditDefaultsOnly, Category = "UserClass | Weapon")
 	TObjectPtr<USoundCue> FireEmptySound;
 
 	/* Area Box */
@@ -60,7 +61,7 @@ protected:
 	void AreaBoxEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
 	/* Crosshair */
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditDefaultsOnly, Category = "UserClass | Weapon")
 	FCrosshairTextures Crosshair;
 
 	/* Pickup Widget */
@@ -70,57 +71,49 @@ protected:
 	/* Weapon State */
 	UPROPERTY(ReplicatedUsing = OnRep_WeaponState)
 	EWeaponState WeaponState;
-
-	void UpdateWeaponState();
-
 	UFUNCTION()
 	void OnRep_WeaponState(EWeaponState OldState) { UpdateWeaponState(); }
 
+	void UpdateWeaponState();
+
 	/* Casing */
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditDefaultsOnly, Category = "UserClass | Weapon")
 	TSubclassOf<ACasing> CasingClass;
 
-	/* Field Of View */
-	UPROPERTY(EditDefaultsOnly)
+	/* Aim FOV */
+	UPROPERTY(EditDefaultsOnly, Category = "UserClass | Weapon")
+	bool bCanAim;
+	UPROPERTY(EditDefaultsOnly, Category = "UserClass | Weapon")
 	float AimedFOV;
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditDefaultsOnly, Category = "UserClass | Weapon")
 	float FOVInterpSpeed;
 
 	/* Fire Bullet */
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditDefaultsOnly, Category = "UserClass | Weapon")
 	float FireRate;
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditDefaultsOnly, Category = "UserClass | Weapon")
 	bool bIsAutomatic;
 
 	/* Ammo */
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditDefaultsOnly, Category = "UserClass | Weapon")
 	int32 AmmoCapacity;
-	UPROPERTY(ReplicatedUsing = OnRep_Ammo)
+	UPROPERTY(ReplicatedUsing = OnRep_Ammo, EditDefaultsOnly, Category = "UserClass | Weapon")
 	int32 Ammo;
 	UFUNCTION()
 	virtual void OnRep_Ammo();
 
-	//void SpendRound();
-
 	/* Weapon Type */
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditDefaultsOnly, Category = "UserClass | Weapon")
 	EWeaponType WeaponType;
 
 	/* Reload */
+	UPROPERTY(EditDefaultsOnly, Category = "UserClass | Weapon")
 	float ReloadTime;
 
-	/* HUD */
+	/* References */
 	ABlasterPlayerController* BlasterPC;
 	void DetermineOwnerLocal(AActor* NetLocal);
 	virtual void OnRep_Owner() override;
-
-	/* test */
-	UFUNCTION(Server, Reliable)
-		void ServerTest();
-	UFUNCTION(Client, Reliable)
-		void ClientTest();
-	UFUNCTION(NetMulticast, Reliable)
-		void MulticastTest();
 
 public:
 	/* Pickup Widget */
@@ -142,7 +135,8 @@ public:
 	/* Crosshair */
 	FCrosshairTextures& GetCrosshair() { return Crosshair; }
 
-	/* Field Of View */
+	/* Aim FOV */
+	FORCEINLINE bool CanAim() const { return bCanAim; }
 	FORCEINLINE float GetAimedFOV() const { return AimedFOV; }
 	FORCEINLINE float GetFOVInterpSpeed() const { return FOVInterpSpeed; }
 
@@ -163,4 +157,8 @@ public:
 
 	/* HUD */
 	virtual void SetOwner(AActor* NewOwner) override;
+
+	/* test */
+	UFUNCTION(Server, Reliable)
+	void ServerTest();
 };

@@ -7,27 +7,14 @@
 
 #include "Blaster/Nani/NaniUtility.h"
 
-AProjectileWeapon::AProjectileWeapon() {
-	PrimaryActorTick.bCanEverTick = false;
-
-}
-
-void AProjectileWeapon::Tick(float DeltaTime) {
-	Super::Tick(DeltaTime);
-
-}
-
-void AProjectileWeapon::BeginPlay() {
-	Super::BeginPlay();
-
-}
+AProjectileWeapon::AProjectileWeapon() {}
 
 //
 //============================================ Fire Bullet ============================================
 //
 void AProjectileWeapon::FireBullet(const FVector& HitTarget) {
 	/* happens on Authority */
-	if (!HasAuthority() || ProjectileClass == nullptr) return;
+	if (ProjectileClass == nullptr) return;
 
 	/* Weapon Muzzle Socket */
 	const USkeletalMeshSocket* MuzzleSocket = WeaponMesh->GetSocketByName(FName("MuzzleFlash"));

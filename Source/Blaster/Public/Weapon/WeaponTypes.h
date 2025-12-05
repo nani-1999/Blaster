@@ -9,6 +9,8 @@
 UENUM() 
 enum class EWeaponType : uint8 {
 	EWT_AssaultRifle,
+	EWT_RocketLauncher,
+	EWT_Pistol,
 	EWT_MAX /* max is actually used to get the size of enum */
 };
 
@@ -19,6 +21,8 @@ namespace EWeaponTypeStr
 	{
 		switch (WeaponType) {
 			case EWeaponType::EWT_AssaultRifle: return TEXT("AssaultRifle");
+			case EWeaponType::EWT_RocketLauncher: return TEXT("RocketLauncher");
+			case EWeaponType::EWT_Pistol: return TEXT("Pistol");
 			default: return TEXT("MAX");
 		};
 	}

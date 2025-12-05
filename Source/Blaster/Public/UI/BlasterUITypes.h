@@ -35,6 +35,12 @@ enum class EOverlayText : unsigned char {
 	EOT_Ammo,
 	//EOT_AmmoCapacity,
 	EOT_CarriedAmmo,
-	EOT_CountDown,
+	//EOT_CountDown,
 	EOT_MAX
+};
+
+enum class EAnnouncementMatchState : unsigned char {
+	EAMS_WaitingToStart,
+	EAMS_InProgress,
+	EAMS_WaitingPostMatch
 };

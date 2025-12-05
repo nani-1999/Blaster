@@ -19,8 +19,9 @@
 //#include "Particles/ParticleSystemComponent.h"
 #include "Particles/ParticleSystem.h"
 #include "Sound/SoundCue.h"
-//#include "PlayerState/BlasterPlayerState.h"
-#include "GameFramework/PlayerState.h"
+#include "PlayerState/BlasterPlayerState.h"
+//#include "GameFramework/PlayerState.h"
+#include "UI/HUD/BlasterHUD.h"
 
 #include "Blaster/Nani/NaniUtility.h"
 
@@ -112,6 +113,8 @@ void ABlasterCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
+	NANI_LOG(Warning, "%s | BeginPlay", *GetName());
+
 	if (HasAuthority()) {
 		OnTakeAnyDamage.AddDynamic(this, &ABlasterCharacter::TakenAnyDamage);
 	}
@@ -146,7 +149,7 @@ void ABlasterCharacter::PossessedBy(AController* NewController) {
 
 	/* Happens on Authority */
 
-	NANI_LOG(Warning, "PossessedBy");
+	NANI_LOG(Warning, "%s | PossessedBy", *GetName());
 
 	/* Overhead Widget */
 	SetupOverheadWidget();
@@ -161,54 +164,18 @@ void ABlasterCharacter::PossessedBy(AController* NewController) {
 			Combat->SetCamera(FollowCamera);
 		}
 
-		/* HUD's Overlay */
-		BlasterPC->SetHUDOverlayText(EOverlayText::EOT_MaxHealth, MaxHealth);
-		BlasterPC->SetHUDOverlayText(EOverlayText::EOT_Health, Health);
+		/* initializing overlay and making it visible */
+		InitOverlay();
+		BlasterPC->SetHUDOverlayVisibility(true);
 	}
 }
 void ABlasterCharacter::OnRep_PlayerState() {
 	Super::OnRep_PlayerState();
 
-	NANI_LOG(Warning, "OnRep_PlayerState");
+	NANI_LOG(Warning, "%s | OnRep_PlayerState", *GetName());
 
-	/* Overhead Widget */
 	SetupOverheadWidget();
 
-	///* References */
-	//ABlasterPlayerController* Ctrl = GetController<ABlasterPlayerController>();
-	//BlasterPC = (Ctrl && Ctrl->IsLocalController()) ? Ctrl : nullptr;
-	//BlasterPS = Ctrl ? Ctrl->GetPlayerState<ABlasterPlayerState>() : nullptr;
-	//
-	///* Local */
-	//if (BlasterPC) {
-	//	BlasterPC->SetReferences();
-	//	if (BlasterPS) BlasterPS->SetReferences(BlasterPC);
-
-	//	if (Combat) {
-	//		/* Since Comps doesn't have PossessedBy() or Rep_PlayerState() */
-	//		Combat->SetReferences();
-	//		/* combat component needs camera for fov interping while aiming */
-	//		Combat->SetCamera(FollowCamera);
-	//	}
-
-	//	/* HUD's Overlay
-	//	 * using Controller as a mediator to setup and set stats on hud's overlay */
-	//	/* setting up hud's overlay */
-	//	BlasterPC->InitHUDOverlay();
-	//	/* and initializing its values */
-	//	BlasterPC->SetHUDOverlayText(EOverlayText::EOT_MaxHealth, MaxHealth);
-	//	BlasterPC->SetHUDOverlayText(EOverlayText::EOT_Health, Health);
-	//	if (BlasterPS) {
-	//		BlasterPC->SetHUDOverlayText(EOverlayText::EOT_Score, BlasterPS->GetScore());
-	//		BlasterPC->SetHUDOverlayText(EOverlayText::EOT_Defeats, BlasterPS->GetDefeats());
-	//	}
-	//	if (Combat) {
-	//		BlasterPC->SetHUDOverlayText(EOverlayText::EOT_CarriedAmmo, Combat->GetCarriedAmmo());
-	//		BlasterPC->SetHUDOverlayText(EOverlayText::EOT_Ammo, Combat->GetWeaponAmmo());
-	//	}
-	//}
-
-	/* References */
 	ABlasterPlayerController* Ctrl = GetController<ABlasterPlayerController>();
 	BlasterPC = (Ctrl && Ctrl->IsLocalController()) ? Ctrl : nullptr;
 
@@ -218,10 +185,22 @@ void ABlasterCharacter::OnRep_PlayerState() {
 			Combat->SetCamera(FollowCamera);
 		}
 
-		/* HUD's Overlay */
-		BlasterPC->SetHUDOverlayText(EOverlayText::EOT_MaxHealth, MaxHealth);
-		BlasterPC->SetHUDOverlayText(EOverlayText::EOT_Health, Health);
+		InitOverlay();
+		BlasterPC->SetHUDOverlayVisibility(true);
 	}
+}
+
+//
+//============================================ References ============================================
+//
+void ABlasterCharacter::InitOverlay() {
+	/* character */
+	BlasterPC->SetHUDOverlayText(EOverlayText::EOT_MaxHealth, MaxHealth);
+	BlasterPC->SetHUDOverlayText(EOverlayText::EOT_Health, Health);
+	/* combat component */
+	if (Combat) Combat->InitOverlay();
+	/* playerstate, since there is nothing to notify playerstate when character spawns */
+	if (ABlasterPlayerState* BlasterPS = GetPlayerState<ABlasterPlayerState>()) BlasterPS->InitOverlay();
 }
 
 //
@@ -425,7 +404,7 @@ void ABlasterCharacter::OnRep_Health(float OldHealth) {
 //============================================ Damage ============================================
 //
 void ABlasterCharacter::TakenAnyDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType, AController* InstigatedBy, AActor* DamageCauser) {
-	NANI_LOG(Warning, "%s Dealt %f Damage on %s using %s", *InstigatedBy->GetName(), Damage, *DamagedActor->GetName(), *DamageCauser->GetName());
+	NANI_LOG(Error, "%s Dealt %f Damage on %s using %s", *InstigatedBy->GetName(), Damage, *DamagedActor->GetName(), *DamageCauser->GetName());
 
 	/* Happens on Authority */
 	Health = FMath::Clamp(Health - Damage, 0.f, MaxHealth);
@@ -482,8 +461,9 @@ void ABlasterCharacter::MulticastEliminated_Implementation() {
 	GetCharacterMovement()->DisableMovement();
 	GetCharacterMovement()->StopMovementImmediately(); /* for any slide, deceleration or free movements happening */
 
-	/* hiding overheadwidget */
+	/* hiding, overheadwidget & hud's overlay */
 	OverheadWidget->SetVisibility(false);
+	if (BlasterPC) BlasterPC->SetHUDOverlayVisibility(false);
 
 	/* elimination bot 
 	 * must do this after removing all movement and input privilages */

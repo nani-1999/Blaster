@@ -38,4 +38,5 @@ public:
 
 	/* References */
 	void SetReferences();
+	void InitOverlay();
 };

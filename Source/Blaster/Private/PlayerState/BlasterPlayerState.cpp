@@ -26,9 +26,9 @@ void ABlasterPlayerState::GetLifetimeReplicatedProps(TArray< FLifetimeProperty >
 //
 void ABlasterPlayerState::SetReferences() {
 	/* this func is called on locally only */
-
 	BlasterPC = GetOwner<ABlasterPlayerController>();
-
+}
+void ABlasterPlayerState::InitOverlay() {
 	/* HUD's Overlay */
 	BlasterPC->SetHUDOverlayText(EOverlayText::EOT_Score, GetScore());
 	BlasterPC->SetHUDOverlayText(EOverlayText::EOT_Defeats, Defeats);

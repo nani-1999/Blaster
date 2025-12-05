@@ -191,4 +191,7 @@ public:
 	bool IsWeaponEquipped();
 	bool IsAiming();
 	ECombatState GetCombatState() const;
+
+	/* References */
+	void InitOverlay();
 };
