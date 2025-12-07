@@ -135,9 +135,9 @@ void AWeapon::UpdateWeaponState() {
 //
 //============================================ Socket ============================================
 //
-FTransform AWeapon::GetGripSocket() const {
-	/* One is Grip and Another One is Wrist */
-	return WeaponMesh->GetSocketTransform(FName("Grip")); /* gives world space by default */
+FTransform AWeapon::GetForegripTransform() const {
+	/* One is Grip and Another One is Foregrip */
+	return WeaponMesh->GetSocketTransform(FName("Foregrip")); /* gives world space by default */
 }
 
 //

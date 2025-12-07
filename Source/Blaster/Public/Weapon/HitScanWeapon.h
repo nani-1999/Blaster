@@ -23,9 +23,24 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "UserClass | HitScanWeapon")
 	float Damage;
 
+	/* Bullet */
+	UPROPERTY(EditDefaultsOnly, Category = "UserClass | HitScanWeapon");
+	uint8 PelletsPerBullet;
+
+	/* Scatter */
+	UPROPERTY(EditDefaultsOnly, Category = "UserClass | HitScanWeapon");
+	bool bScatter;
+	UPROPERTY(EditDefaultsOnly, Category = "UserClass | HitScanWeapon");
+	float ScatterSize;
+
+	/* Trace/HitScan */
+	void TraceAndDamage(FVector StartPoint, FVector EndPoint, APawn* InstigatorPawn);
+
 	/* Particle */
 	UPROPERTY(EditDefaultsOnly, Category = "UserClass | HitScanWeapon")
-	TObjectPtr<UParticleSystem> ImpactParticle;
+	TObjectPtr<UParticleSystem> ImpactParticles;
+	UPROPERTY(EditDefaultsOnly, Category = "UserClass | HitScanWeapon")
+	TObjectPtr<UParticleSystem> BeamParticles;
 
 	/* Sound */
 	UPROPERTY(EditDefaultsOnly, Category = "UserClass | HitScanWeapon")

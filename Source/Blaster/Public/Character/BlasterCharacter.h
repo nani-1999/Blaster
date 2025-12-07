@@ -178,7 +178,7 @@ protected:
 public:
 	/* Weapon */
 	void SetOverlappingWeapon(AWeapon* WeaponToSet);
-	FTransform GetWeaponGripSocket() const;
+	FTransform GetWeaponForegripTransform() const;
 
 	/* Elimination */
 	void Eliminated();

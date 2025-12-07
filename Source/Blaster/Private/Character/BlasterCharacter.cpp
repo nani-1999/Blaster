@@ -250,8 +250,8 @@ void ABlasterCharacter::OnRep_OverlappingWeapon(AWeapon* OldWeapon) const {
 	}
 }
 
-FTransform ABlasterCharacter::GetWeaponGripSocket() const {
-	if (Combat) return Combat->GetWeaponGripSocket();
+FTransform ABlasterCharacter::GetWeaponForegripTransform() const {
+	if (Combat) return Combat->GetWeaponForegripTransform();
 	return FTransform();
 }
 

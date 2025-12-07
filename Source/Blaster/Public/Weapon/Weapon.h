@@ -123,7 +123,7 @@ public:
 	void SetWeaponState(EWeaponState State) { WeaponState = State; UpdateWeaponState(); }
 
 	/* Socket */
-	FTransform GetGripSocket() const;
+	FTransform GetForegripTransform() const;
 
 	/* Fire Bullet */
 	virtual void FireBullet(const FVector& HitTarget);

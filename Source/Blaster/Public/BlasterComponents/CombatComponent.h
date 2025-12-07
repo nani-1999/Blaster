@@ -121,7 +121,7 @@ protected:
 public:
 	/* Weapon */
 	void EquipWeapon(AWeapon* WeaponToEquip);
-	FTransform GetWeaponGripSocket() const;
+	FTransform GetWeaponForegripTransform() const;
 	void DropWeapon();
 
 	/* Getters */

@@ -11,6 +11,8 @@ enum class EWeaponType : uint8 {
 	EWT_AssaultRifle,
 	EWT_RocketLauncher,
 	EWT_Pistol,
+	EWT_SMG,
+	EWT_Shotgun,
 	EWT_MAX /* max is actually used to get the size of enum */
 };
 
@@ -23,6 +25,8 @@ namespace EWeaponTypeStr
 			case EWeaponType::EWT_AssaultRifle: return TEXT("AssaultRifle");
 			case EWeaponType::EWT_RocketLauncher: return TEXT("RocketLauncher");
 			case EWeaponType::EWT_Pistol: return TEXT("Pistol");
+			case EWeaponType::EWT_SMG: return TEXT("SMG");
+			case EWeaponType::EWT_Shotgun: return TEXT("Shotgun");
 			default: return TEXT("MAX");
 		};
 	}

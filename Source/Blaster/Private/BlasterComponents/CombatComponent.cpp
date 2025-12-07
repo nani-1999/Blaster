@@ -188,8 +188,8 @@ void UCombatComponent::DropWeapon() {
 //
 //============================================ Socket ============================================
 //
-FTransform UCombatComponent::GetWeaponGripSocket() const {
-	if (EquippedWeapon) return EquippedWeapon->GetGripSocket();
+FTransform UCombatComponent::GetWeaponForegripTransform() const {
+	if (EquippedWeapon) return EquippedWeapon->GetForegripTransform();
 	return FTransform();
 }
 
@@ -254,7 +254,7 @@ void UCombatComponent::PlayCharacterMontage(UAnimMontage* MontageToPlay, FName S
 }
 
 //
-//============================================ HitScane ============================================
+//============================================ Trace/HitScane ============================================
 //
 void UCombatComponent::TraceUnderCursor(float TraceLength, bool bOffset) {
 	FVector2D ViewportSize;

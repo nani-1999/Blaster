@@ -115,10 +115,10 @@ void UBlasterAnimInstance::NativeUpdateAnimation(float DeltaSeconds) {
 		 * getting WorldSpace Transform of Weapon's LeftHandSocket 
 		 * we need to convert that WorldSpace into a BoneSpace
 		 * in this case, relative to one of the CharacterMesh's Bone, eg: hand_r */
-		FTransform LeftHandSocketTransform = bIsWeaponEquipped ? BlasterCharacter->GetWeaponGripSocket() : FTransform();
+		FTransform WeaponForegripTransform = bIsWeaponEquipped ? BlasterCharacter->GetWeaponForegripTransform() : FTransform();
 		FVector LeftHandBoneLoc;
 		FRotator LeftHandBoneRot;
-		BlasterCharacter->GetMesh()->TransformToBoneSpace(FName("hand_r"), LeftHandSocketTransform.GetLocation(), FRotator(0.f), LeftHandBoneLoc, LeftHandBoneRot);
+		BlasterCharacter->GetMesh()->TransformToBoneSpace(FName("hand_r"), WeaponForegripTransform.GetLocation(), FRotator(0.f), LeftHandBoneLoc, LeftHandBoneRot);
 		LeftHandBoneTransform.SetLocation(LeftHandBoneLoc);
 		LeftHandBoneTransform.SetRotation(FQuat(LeftHandBoneRot));
 
